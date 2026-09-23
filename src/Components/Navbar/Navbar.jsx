@@ -197,7 +197,7 @@ console.log(setDesktopSearch.value)
 
   return (
     <motion.header
-      className={`relative bg-black/20 w-full py-4 z-50 ${className}`}
+      className={`relative bg-black/20 w-full py-4 sm:py-2 px-0 sm:px-7 z-50 ${className}`}
       variants={navbarVariants}
       initial="hidden"
       animate="visible"
