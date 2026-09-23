@@ -153,10 +153,24 @@ const Navbar = ({ className = '' }) => {
     setDesktopSearch('');
     desktopSearchRef.current?.focus();
   };
-
+console.log(setDesktopSearch.value)
   const clearMobileSearch = () => {
     setMobileSearch('');
     mobileSearchRef.current?.focus();
+  };
+
+  // --- UPDATED: Handle Search Submission (Only clears input) ---
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Add your search logic here
+      console.log('Searching for:', e.target.value);
+      
+      // Only clear the state values
+      setDesktopSearch('');
+      setMobileSearch('');
+    }
   };
 
   // Close the Shop dropdown when clicking outside
@@ -200,7 +214,7 @@ const Navbar = ({ className = '' }) => {
               <span className="px-3 py-1 bg-blue-700 text-white text-2xl font-bold rounded">
                 A
               </span>
-              <span className="text-lg font-semibold tracking-tighter">StyleCraft</span>
+              <span className="text-lg font-semibold tracking-tighter"><span className='font-bold text-blue-800'>Style</span>Craft</span>
             </Link>
           </motion.div>
 
@@ -330,6 +344,7 @@ const Navbar = ({ className = '' }) => {
                 type="text"
                 value={desktopSearch}
                 onChange={(e) => setDesktopSearch(e.target.value)}
+                onKeyDown={handleSearch}
                 placeholder="Search clothes..."
                 className="w-56 xl:w-64 bg-gray-100 pl-9 pr-9 py-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
               />
@@ -477,15 +492,16 @@ const Navbar = ({ className = '' }) => {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
-              <div className="relative mt-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <div className="relative py-4 px-2">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <input
                   ref={mobileSearchRef}
                   type="text"
                   value={mobileSearch}
                   onChange={(e) => setMobileSearch(e.target.value)}
+                  onKeyDown={handleSearch}
                   placeholder="Search clothes..."
-                  className="w-full bg-gray-100 pl-9 pr-9 py-2.5 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                  className="w-full bg-gray-100 pl-9 pr-9  py-2.5 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
                   autoFocus
                 />
                 <AnimatePresence>
@@ -497,7 +513,7 @@ const Navbar = ({ className = '' }) => {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.6 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-5 w-5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                      className="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-5 w-5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
                       aria-label="Clear search"
                     >
                       <X className="h-3.5 w-3.5" />
