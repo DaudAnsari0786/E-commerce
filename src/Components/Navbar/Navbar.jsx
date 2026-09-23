@@ -6,7 +6,6 @@ import {
   Home,
   Info,
   Star,
-  ShoppingBag,
   BookOpen,
   Mail,
   Shirt,
@@ -92,9 +91,9 @@ const mobileItemVariants = {
   }),
 };
 
-// --- Data (Clothing Shop) ---
-const features = [
-  { title: 'New Arrivals', description: 'Fresh drops every week', href: '/shop/Arrivals', icon: Sparkles },
+// --- Data ---
+const shopCategories = [
+  { title: 'New Arrivals', description: 'Fresh drops every week', href: '/shop/arrivals', icon: Sparkles },
   { title: 'Men', description: 'Shirts, tees & more', href: '/shop/mens', icon: Shirt },
   { title: 'Women', description: 'Dresses, tops & more', href: '/shop/womens', icon: Gem },
   { title: 'Kids', description: 'Playful styles for little ones', href: '/shop/kids', icon: Baby },
@@ -102,125 +101,108 @@ const features = [
   { title: 'Sale', description: 'Up to 50% off select items', href: '/shop/sale', icon: Tag },
 ];
 
-// Home, About — before Shop
 const desktopLinksBefore = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'About', href: '/about', icon: Info },
 ];
 
-// Products, Resources, Contact — after Shop
 const desktopLinksAfter = [
-  { label: 'Products', href: '/shop', icon: ShoppingBag },
   { label: 'Resources', href: '/resources', icon: BookOpen },
   { label: 'Contact', href: '/contact', icon: Mail },
 ];
 
-// Mobile-only extra links
 const mobileLinks = [
   { label: 'Templates', href: '/templates', icon: LayoutDashboard },
   { label: 'Blog', href: '/blog', icon: BarChart3 },
   { label: 'Pricing', href: '/pricing', icon: Settings },
 ];
 
-// Combined for mobile footer counter
 const allMobileLinks = [...desktopLinksBefore, ...desktopLinksAfter, ...mobileLinks];
 
 const Navbar = ({ className = '' }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
-  const [isMobileFeaturesOpen, setIsMobileFeaturesOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Desktop search state + ref
   const [desktopSearch, setDesktopSearch] = useState('');
   const desktopSearchRef = useRef(null);
 
-  // Mobile search state + ref
   const [mobileSearch, setMobileSearch] = useState('');
   const mobileSearchRef = useRef(null);
 
-  // Ref for the Shop dropdown wrapper (to detect outside clicks)
-  const featuresRef = useRef(null);
+  const shopRef = useRef(null);
 
-  const toggleFeatures = () => setIsFeaturesOpen((prev) => !prev);
+  const toggleShop = () => setIsShopOpen((prev) => !prev);
 
   const closeMobileMenu = () => {
     setIsMobileOpen(false);
-    setIsMobileFeaturesOpen(false);
+    setIsMobileShopOpen(false);
   };
 
   const clearDesktopSearch = () => {
     setDesktopSearch('');
     desktopSearchRef.current?.focus();
   };
-console.log(setDesktopSearch.value)
+
   const clearMobileSearch = () => {
     setMobileSearch('');
     mobileSearchRef.current?.focus();
   };
 
-  // --- UPDATED: Handle Search Submission (Only clears input) ---
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      // Add your search logic here
       console.log('Searching for:', e.target.value);
-      
-      // Only clear the state values
       setDesktopSearch('');
       setMobileSearch('');
     }
   };
 
-  // Close the Shop dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (featuresRef.current && !featuresRef.current.contains(e.target)) {
-        setIsFeaturesOpen(false);
+      if (shopRef.current && !shopRef.current.contains(e.target)) {
+        setIsShopOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Helper for active link styling
   const linkClass = ({ isActive }) =>
     `inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-      isActive ? 'bg-gray-100 text-blue-700' : 'hover:bg-gray-50'
+      isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100 hover:text-blue-700'
     }`;
 
   const mobileLinkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-md px-3 py-3 font-medium transition-colors ${
-      isActive ? 'bg-gray-100 text-blue-700' : 'hover:bg-gray-50'
+      isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
     }`;
 
   return (
     <motion.header
-      className={`relative bg-black/20 w-full py-4 sm:py-2 px-0 sm:px-7 z-50 ${className}`}
+      className={`sticky top-0 z-50 w-full bg-white shadow-sm border-b border-gray-200 ${className}`}
       variants={navbarVariants}
       initial="hidden"
       animate="visible"
     >
-      <div className="container mx-auto px-4">
-        <nav className="flex items-center justify-between gap-4">
+      <div className="container mx-auto px-3 sm:px-6">
+        <nav className="flex items-center justify-between gap-3 py-2 sm:py-3">
           {/* Logo */}
           <motion.div variants={logoVariants} initial="hidden" animate="visible">
             <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
-              <motion.div
-                whileHover={{ rotate: 10, scale: 1.1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              />
-              <span className="px-3 py-1 bg-blue-700 text-white text-2xl font-bold rounded">
+              <span className="px-3 py-1 bg-blue-700 text-white text-xl sm:text-2xl font-bold rounded">
                 A
               </span>
-              <span className="text-lg font-semibold tracking-tighter"><span className='font-bold text-blue-800'>Style</span>Craft</span>
+              <span className="text-base sm:text-lg font-semibold tracking-tighter">
+                <span className="font-bold text-blue-800">Style</span>
+                <span className="text-gray-900">Craft</span>
+              </span>
             </Link>
           </motion.div>
 
           {/* ==================== DESKTOP NAV ==================== */}
           <div className="hidden items-center gap-1 lg:flex">
-            {/* Home, About */}
             {desktopLinksBefore.map((item, i) => (
               <motion.div
                 key={item.label}
@@ -238,38 +220,35 @@ console.log(setDesktopSearch.value)
             ))}
 
             {/* Shop Dropdown */}
-            <div className="relative" ref={featuresRef}>
+            <div className="relative" ref={shopRef}>
               <motion.button
                 type="button"
-                onClick={toggleFeatures}
-                className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-50"
+                onClick={toggleShop}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  isShopOpen
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-blue-700'
+                }`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                aria-expanded={isFeaturesOpen}
+                aria-expanded={isShopOpen}
                 aria-haspopup="true"
               >
-                {/* Star hidden on lg and up (laptop/desktop) */}
-                <Star className="h-4 w-4 text-gray-500 lg:hidden" />
                 Shop
                 <motion.svg
                   className="h-3 w-3"
-                  animate={{ rotate: isFeaturesOpen ? 180 : 0 }}
+                  animate={{ rotate: isShopOpen ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M19 9l-7 7-7-7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </motion.svg>
               </motion.button>
 
               <AnimatePresence>
-                {isFeaturesOpen && (
+                {isShopOpen && (
                   <motion.div
                     className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2"
                     variants={dropdownVariants}
@@ -277,29 +256,29 @@ console.log(setDesktopSearch.value)
                     animate="visible"
                     exit="exit"
                   >
-                    <div className="grid w-[600px] grid-cols-2 gap-1 rounded-lg border bg-white p-3 shadow-lg">
-                      {features.map((feature, index) => {
-                        const FeatureIcon = feature.icon;
+                    <div className="grid w-[560px] grid-cols-2 gap-1 rounded-lg border border-gray-200 bg-white p-3 shadow-xl">
+                      {shopCategories.map((cat, index) => {
+                        const Icon = cat.icon;
                         return (
                           <motion.div
-                            key={feature.title}
+                            key={cat.title}
                             variants={featureItemVariants}
                             initial="hidden"
                             animate="visible"
                             custom={index}
-                            whileHover={{ x: 4, backgroundColor: 'rgba(0,0,0,0.04)' }}
+                            whileHover={{ x: 4, backgroundColor: 'rgba(59,130,246,0.06)' }}
                           >
                             <Link
-                              to={feature.href}
-                              className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-gray-50"
-                              onClick={() => setIsFeaturesOpen(false)}
+                              to={cat.href}
+                              className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-blue-50"
+                              onClick={() => setIsShopOpen(false)}
                             >
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700">
-                                <FeatureIcon className="h-4 w-4" />
+                                <Icon className="h-4 w-4" />
                               </div>
                               <div>
-                                <p className="mb-1 font-semibold text-gray-900">{feature.title}</p>
-                                <p className="text-sm text-gray-500">{feature.description}</p>
+                                <p className="mb-1 font-semibold text-gray-900">{cat.title}</p>
+                                <p className="text-sm text-gray-500">{cat.description}</p>
                               </div>
                             </Link>
                           </motion.div>
@@ -311,7 +290,6 @@ console.log(setDesktopSearch.value)
               </AnimatePresence>
             </div>
 
-            {/* Products, Resources, Contact */}
             {desktopLinksAfter.map((item, i) => (
               <motion.div
                 key={item.label}
@@ -346,7 +324,7 @@ console.log(setDesktopSearch.value)
                 onChange={(e) => setDesktopSearch(e.target.value)}
                 onKeyDown={handleSearch}
                 placeholder="Search clothes..."
-                className="w-56 xl:w-64 bg-gray-100 pl-9 pr-9 py-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                className="w-48 xl:w-64 bg-gray-100 pl-9 pr-9 py-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
               />
               <AnimatePresence>
                 {desktopSearch.length > 0 && (
@@ -367,15 +345,14 @@ console.log(setDesktopSearch.value)
             </div>
           </motion.div>
 
-          {/* ==================== DESKTOP WISHLIST + CART + AUTH ==================== */}
+          {/* ==================== DESKTOP ACTIONS ==================== */}
           <motion.div
-            className="hidden items-center gap-3 lg:flex"
+            className="hidden items-center gap-2 lg:flex"
             variants={navItemVariants}
             initial="hidden"
             animate="visible"
             custom={6}
           >
-            {/* Wishlist */}
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Link
                 to="/wishlist"
@@ -389,7 +366,6 @@ console.log(setDesktopSearch.value)
               </Link>
             </motion.div>
 
-            {/* Sign in */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/signin"
@@ -400,7 +376,6 @@ console.log(setDesktopSearch.value)
               </Link>
             </motion.div>
 
-            {/* Cart */}
             <motion.div
               whileHover={{ scale: 1.05, boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}
               whileTap={{ scale: 0.95 }}
@@ -419,8 +394,7 @@ console.log(setDesktopSearch.value)
           </motion.div>
 
           {/* ==================== MOBILE ACTIONS ==================== */}
-          <div className="flex items-center gap-2 lg:hidden">
-            {/* Mobile Search Toggle */}
+          <div className="flex items-center gap-1.5 lg:hidden">
             <motion.button
               className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-2"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -431,7 +405,6 @@ console.log(setDesktopSearch.value)
               {isSearchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
             </motion.button>
 
-            {/* Mobile Wishlist */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/wishlist"
@@ -445,7 +418,6 @@ console.log(setDesktopSearch.value)
               </Link>
             </motion.div>
 
-            {/* Mobile Cart */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/cart"
@@ -459,7 +431,6 @@ console.log(setDesktopSearch.value)
               </Link>
             </motion.div>
 
-            {/* Mobile Menu Button */}
             <motion.button
               className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-2"
               onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -482,7 +453,7 @@ console.log(setDesktopSearch.value)
           </div>
         </nav>
 
-        {/* ==================== MOBILE SEARCH BAR ==================== */}
+        {/* ==================== MOBILE SEARCH ==================== */}
         <AnimatePresence>
           {isSearchOpen && (
             <motion.div
@@ -492,8 +463,8 @@ console.log(setDesktopSearch.value)
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
-              <div className="relative py-4 px-2">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <div className="relative pb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <input
                   ref={mobileSearchRef}
                   type="text"
@@ -501,7 +472,7 @@ console.log(setDesktopSearch.value)
                   onChange={(e) => setMobileSearch(e.target.value)}
                   onKeyDown={handleSearch}
                   placeholder="Search clothes..."
-                  className="w-full bg-gray-100 pl-9 pr-9  py-2.5 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                  className="w-full bg-gray-100 pl-9 pr-9 py-2.5 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
                   autoFocus
                 />
                 <AnimatePresence>
@@ -513,7 +484,7 @@ console.log(setDesktopSearch.value)
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.6 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-5 w-5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-5 w-5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
                       aria-label="Clear search"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -535,8 +506,7 @@ console.log(setDesktopSearch.value)
               animate="visible"
               exit="exit"
             >
-              <div className="mt-4 flex flex-col gap-1 border-t pt-4">
-                {/* Home, About */}
+              <div className="flex flex-col gap-1 border-t border-gray-200 py-3">
                 {desktopLinksBefore.map((item, i) => {
                   const Icon = item.icon;
                   return (
@@ -564,8 +534,12 @@ console.log(setDesktopSearch.value)
                 {/* Shop Accordion */}
                 <div>
                   <motion.button
-                    className="flex w-full items-center justify-between rounded-md px-3 py-3 text-base font-medium transition-colors hover:bg-gray-50"
-                    onClick={() => setIsMobileFeaturesOpen(!isMobileFeaturesOpen)}
+                    className={`flex w-full items-center justify-between rounded-md px-3 py-3 text-base font-medium transition-colors ${
+                      isMobileShopOpen
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    onClick={() => setIsMobileShopOpen(!isMobileShopOpen)}
                     variants={mobileItemVariants}
                     initial="hidden"
                     animate="visible"
@@ -577,23 +551,18 @@ console.log(setDesktopSearch.value)
                     </span>
                     <motion.svg
                       className="h-4 w-4"
-                      animate={{ rotate: isMobileFeaturesOpen ? 180 : 0 }}
+                      animate={{ rotate: isMobileShopOpen ? 180 : 0 }}
                       transition={{ duration: 0.2 }}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </motion.svg>
                   </motion.button>
 
                   <AnimatePresence>
-                    {isMobileFeaturesOpen && (
+                    {isMobileShopOpen && (
                       <motion.div
                         className="overflow-hidden"
                         initial={{ height: 0, opacity: 0 }}
@@ -602,11 +571,11 @@ console.log(setDesktopSearch.value)
                         transition={{ duration: 0.3, ease: 'easeInOut' }}
                       >
                         <div className="grid gap-1 p-2">
-                          {features.map((feature, index) => {
-                            const FeatureIcon = feature.icon;
+                          {shopCategories.map((cat, index) => {
+                            const Icon = cat.icon;
                             return (
                               <motion.div
-                                key={feature.title}
+                                key={cat.title}
                                 variants={featureItemVariants}
                                 initial="hidden"
                                 animate="visible"
@@ -614,20 +583,16 @@ console.log(setDesktopSearch.value)
                                 whileHover={{ x: 4 }}
                               >
                                 <Link
-                                  to={feature.href}
-                                  className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-gray-50"
+                                  to={cat.href}
+                                  className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-blue-50"
                                   onClick={closeMobileMenu}
                                 >
                                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700">
-                                    <FeatureIcon className="h-4 w-4" />
+                                    <Icon className="h-4 w-4" />
                                   </div>
                                   <div>
-                                    <p className="mb-1 font-semibold text-gray-900">
-                                      {feature.title}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      {feature.description}
-                                    </p>
+                                    <p className="mb-1 font-semibold text-gray-900">{cat.title}</p>
+                                    <p className="text-sm text-gray-500">{cat.description}</p>
                                   </div>
                                 </Link>
                               </motion.div>
@@ -639,7 +604,6 @@ console.log(setDesktopSearch.value)
                   </AnimatePresence>
                 </div>
 
-                {/* Products, Resources, Contact, Templates, Blog, Pricing */}
                 {[...desktopLinksAfter, ...mobileLinks].map((item, i) => {
                   const Icon = item.icon;
                   return (
@@ -663,9 +627,8 @@ console.log(setDesktopSearch.value)
                   );
                 })}
 
-                {/* Mobile Auth Buttons */}
                 <motion.div
-                  className="mt-3 flex flex-col gap-3 border-t pt-4"
+                  className="mt-3 flex flex-col gap-3 border-t border-gray-200 pt-4"
                   variants={mobileItemVariants}
                   initial="hidden"
                   animate="visible"

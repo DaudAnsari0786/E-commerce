@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import Navbar from './Components/Navbar/Navbar';
 import Home from './Components/Sections/Home';
@@ -11,77 +12,142 @@ import Kids from './Components/CATEGORIES/Kids';
 import Girls from './Components/CATEGORIES/Girls';
 import Footer from './Components/Footer/Footer';
 import Products from './Components/Sections/Products';
-import Contact from "./Components/Sections/Contact"
+import Contact from './Components/Sections/Contact';
 import Resource from './Components/Sections/Resource';
-// Optional: a simple index page shown at /shop
-const ShopHome = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold">Welcome to the Shop</h1>
-    <p className="text-gray-600 mt-2">Pick a category above to get started.</p>
-  </div>
+import Login from './Components/Forms/Login';
+import Signup from './Components/Forms/Signup';
+import WishList from './Components/Sections/WishList';
+import Cart from './Components/Sections/Cart';
+
+// Page transition variants
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const PageWrapper = ({ children }) => (
+  <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="w-full">
+    {children}
+  </motion.div>
 );
 
-const App = () => {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
+const Placeholder = ({ title, description }) => (
+  <PageWrapper>
+    <section className="min-h-[70vh] flex items-center justify-center bg-white px-4 py-16">
+      <div className="max-w-2xl text-center">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{title}</h1>
+        <p className="text-gray-600 text-sm sm:text-base mb-6">{description || 'This page is under construction. Check back soon!'}</p>
+        <Link to="/" className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200">
+          Back to Home
+        </Link>
+      </div>
+    </section>
+  </PageWrapper>
+);
 
-      <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path='/products' element={<Products />} />
-          {/* Nested routes under /shop */}
-          <Route path="/shop" element={<Shop />}>
-            <Route index element={<ShopHome />} />
-            <Route path="mens" element={<Mens />} />
-            <Route path="womens" element={<Womens />} />
-            <Route path="kids" element={<Kids />} />
-            <Route path="girls" element={<Girls />} />
-          </Route>
-          <Route path='/contact' element={<Contact />} />
-          <Route path='/resources' element={<Resource />} />
-          {/* 404 fallback (optional) */}
-          <Route
-            path="*"
-            element={
-                <section className="min-h-screen flex items-center justify-center bg-white px-4 py-10 font-serif">
+const ShopHome = () => (
+  <PageWrapper>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Welcome to the Shop</h1>
+      <p className="text-gray-600 mt-2">Pick a category above to get started.</p>
+    </div>
+  </PageWrapper>
+);
+
+const NotFound = () => (
+  <PageWrapper>
+    <section className="min-h-screen flex items-center justify-center bg-white px-4 py-10 font-serif">
       <div className="w-full max-w-3xl text-center">
-        {/* 404 GIF Background */}
-        <div
-          className="h-[400px] bg-center bg-no-repeat bg-contain"
-          style={{
-            backgroundImage:
-              'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)',
-          }}
-        >
+        <div className="h-[400px] bg-center bg-no-repeat bg-contain" style={{ backgroundImage: 'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)' }}>
           <h1 className="text-[80px] font-bold text-gray-800">404</h1>
         </div>
-
-        {/* Content Box */}
         <div className="-mt-12">
-          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-            Look like you're lost
-          </h3>
-
-          <p className="text-gray-600 mb-6">
-            the page you are looking for not available!
-          </p>
-
-          <Link
-            to="/"
-            className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-          >
+          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Look like you're lost</h3>
+          <p className="text-gray-600 mb-6">The page you are looking for is not available!</p>
+          <Link to="/" className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
             Go to Home
           </Link>
         </div>
       </div>
     </section>
-            }
-          />
-        </Routes>
-      </main>
+  </PageWrapper>
+);
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  React.useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname]);
+  return null;
+};
+
+// ---------- ✅ ALL PLACEHOLDER ROUTES IN ONE COMPACT ARRAY ----------
+const placeholderRoutes = [
+  { path: '/account', title: 'My Account', description: 'Manage your profile, orders, and addresses.' },
+  { path: '/careers', title: 'Careers at StyleCraft', description: "We're hiring! Explore open roles." },
+  { path: '/blog', title: 'StyleCraft Blog', description: 'Fashion tips, trends, and stories.' },
+  { path: '/stores', title: 'Store Locator', description: 'Find a StyleCraft store near you.' },
+  { path: '/sustainability', title: 'Sustainability', description: 'Our commitment to ethical fashion.' },
+  { path: '/affiliates', title: 'Affiliate Program', description: 'Earn commissions by referring friends.' },
+  { path: '/templates', title: 'Templates', description: 'Free style guides and outfit templates.' },
+  { path: '/pricing', title: 'Pricing', description: 'Membership plans and benefits.' },
+  { path: '/faq', title: 'Frequently Asked Questions', description: 'Quick answers to common questions.' },
+  { path: '/shipping', title: 'Shipping Information', description: 'Delivery timelines and charges.' },
+  { path: '/returns', title: 'Returns & Refunds', description: 'Our 30-day hassle-free return policy.' },
+  { path: '/size-guide', title: 'Size Guide', description: 'Find your perfect fit.' },
+  { path: '/track-order', title: 'Track Your Order', description: 'Enter your order ID to see status.' },
+  { path: '/privacy', title: 'Privacy Policy', description: 'How we protect your data.' },
+  { path: '/terms', title: 'Terms of Service', description: 'Rules for using StyleCraft.' },
+  { path: '/cookies', title: 'Cookie Policy', description: 'How we use cookies.' },
+];
+
+const App = () => {
+  const location = useLocation();
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <ScrollToTop />
+      <main className="flex-1">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            {/* CORE */}
+            <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+            <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+            <Route path="/products" element={<PageWrapper><Products /></PageWrapper>} />
+            <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
+            <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
+
+            {/* SHOP */}
+            <Route path="/shop" element={<PageWrapper><Shop /></PageWrapper>}>
+              <Route index element={<ShopHome />} />
+              <Route path="mens" element={<PageWrapper><Mens /></PageWrapper>} />
+              <Route path="womens" element={<PageWrapper><Womens /></PageWrapper>} />
+              <Route path="kids" element={<PageWrapper><Kids /></PageWrapper>} />
+              <Route path="girls" element={<PageWrapper><Girls /></PageWrapper>} />
+              <Route path="arrivals" element={<Placeholder title="New Arrivals" description="Fresh drops landing every week. Stay tuned!" />} />
+              <Route path="sale" element={<Placeholder title="Sale — Up to 50% Off" description="Grab your favorites before they're gone." />} />
+            </Route>
+
+            {/* AUTH */}
+            <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
+            <Route path="/signin" element={<PageWrapper><Login /></PageWrapper>} />
+            <Route path="/signup" element={<PageWrapper><Signup /></PageWrapper>} />
+
+            {/* USER */}
+            <Route path="/wishlist" element={<PageWrapper><WishList /></PageWrapper>} />
+            <Route path="/wishList" element={<PageWrapper><WishList /></PageWrapper>} />
+            <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
+
+            {/* ✅ ALL PLACEHOLDER ROUTES — COMPACT */}
+            {placeholderRoutes.map(({ path, title, description }) => (
+              <Route key={path} path={path} element={<Placeholder title={title} description={description} />} />
+            ))}
+
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AnimatePresence>
+      </main>
       <Footer />
     </div>
   );
