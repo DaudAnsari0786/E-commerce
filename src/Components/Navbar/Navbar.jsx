@@ -463,7 +463,7 @@ const Navbar = ({ className = '' }) => {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
-              <div className="relative pb-3">
+              <div className="relative py-5 mx-3 ">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <input
                   ref={mobileSearchRef}
