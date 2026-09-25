@@ -5,11 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './Components/Navbar/Navbar';
 import Home from './Components/Sections/Home';
 import About from './Components/Sections/About';
-import Shop from './Components/FEATURES/Shop';
-import Mens from './Components/CATEGORIES/Mens';
-import Womens from './Components/CATEGORIES/Womens';
-import Kids from './Components/CATEGORIES/Kids';
-import Girls from './Components/CATEGORIES/Girls';
 import Footer from './Components/Footer/Footer';
 import Products from './Components/Sections/Products';
 import Contact from './Components/Sections/Contact';
@@ -18,8 +13,16 @@ import Login from './Components/Forms/Login';
 import Signup from './Components/Forms/Signup';
 import WishList from './Components/Sections/WishList';
 import Cart from './Components/Sections/Cart';
+import Arrivals from './Components/Sections/Arrivals';
+import Sale from './Components/Sections/Sale';
+import MensProducts from './Components/CATEGORIES/MensProducts';
+import WomensProducts from './Components/CATEGORIES/WomensProducts';
+import KidsProducts from './Components/CATEGORIES/KidsProducts';
+import GirlsProducts from './Components/CATEGORIES/GirlsProducts';
+import AllproductNav from './Components/FEATURES/AllproductNav';
+import Profile from './Components/Forms/Profile';
 
-// Page transition variants
+/* ---------- Page transition variants ---------- */
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
@@ -27,18 +30,44 @@ const pageVariants = {
 };
 
 const PageWrapper = ({ children }) => (
-  <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="w-full">
+  <motion.div
+    variants={pageVariants}
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    className="w-full"
+  >
     {children}
   </motion.div>
 );
 
+/* ---------- Layout with Navbar + Footer ---------- */
+const MainLayout = ({ children }) => (
+  <div className="flex flex-col min-h-screen">
+    <Navbar />
+    <main className="flex-1">{children}</main>
+    <Footer />
+  </div>
+);
+
+/* ---------- Layout for auth/profile (no Navbar/Footer) ---------- */
+const AuthLayout = ({ children }) => (
+  <div className="min-h-screen bg-gray-50">{children}</div>
+);
+
+/* ---------- Placeholder ---------- */
 const Placeholder = ({ title, description }) => (
   <PageWrapper>
     <section className="min-h-[70vh] flex items-center justify-center bg-white px-4 py-16">
       <div className="max-w-2xl text-center">
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{title}</h1>
-        <p className="text-gray-600 text-sm sm:text-base mb-6">{description || 'This page is under construction. Check back soon!'}</p>
-        <Link to="/" className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200">
+        <p className="text-gray-600 text-sm sm:text-base mb-6">
+          {description || 'This page is under construction. Check back soon!'}
+        </p>
+        <Link
+          to="/"
+          className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200"
+        >
           Back to Home
         </Link>
       </div>
@@ -46,26 +75,29 @@ const Placeholder = ({ title, description }) => (
   </PageWrapper>
 );
 
-const ShopHome = () => (
-  <PageWrapper>
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Welcome to the Shop</h1>
-      <p className="text-gray-600 mt-2">Pick a category above to get started.</p>
-    </div>
-  </PageWrapper>
-);
-
+/* ---------- 404 ---------- */
 const NotFound = () => (
   <PageWrapper>
     <section className="min-h-screen flex items-center justify-center bg-white px-4 py-10 font-serif">
       <div className="w-full max-w-3xl text-center">
-        <div className="h-[400px] bg-center bg-no-repeat bg-contain" style={{ backgroundImage: 'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)' }}>
+        <div
+          className="h-[400px] bg-center bg-no-repeat bg-contain"
+          style={{
+            backgroundImage:
+              'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)',
+          }}
+        >
           <h1 className="text-[80px] font-bold text-gray-800">404</h1>
         </div>
         <div className="-mt-12">
-          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Look like you're lost</h3>
+          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+            Look like you're lost
+          </h3>
           <p className="text-gray-600 mb-6">The page you are looking for is not available!</p>
-          <Link to="/" className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+          <Link
+            to="/"
+            className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+          >
             Go to Home
           </Link>
         </div>
@@ -74,13 +106,16 @@ const NotFound = () => (
   </PageWrapper>
 );
 
+/* ---------- Scroll to top on route change ---------- */
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname]);
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
   return null;
 };
 
-// ---------- ✅ ALL PLACEHOLDER ROUTES IN ONE COMPACT ARRAY ----------
+/* ---------- Placeholder routes ---------- */
 const placeholderRoutes = [
   { path: '/account', title: 'My Account', description: 'Manage your profile, orders, and addresses.' },
   { path: '/careers', title: 'Careers at StyleCraft', description: "We're hiring! Explore open roles." },
@@ -100,56 +135,102 @@ const placeholderRoutes = [
   { path: '/cookies', title: 'Cookie Policy', description: 'How we use cookies.' },
 ];
 
+/* ---------- App ---------- */
 const App = () => {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
+    <>
       <ScrollToTop />
-      <main className="flex-1">
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            {/* CORE */}
-            <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
-            <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
-            <Route path="/products" element={<PageWrapper><Products /></PageWrapper>} />
-            <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
-            <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* ---------- AUTH SECTION (no Navbar/Footer) ---------- */}
+          <Route
+            path="/login"
+            element={
+              <AuthLayout>
+                <PageWrapper>
+                  <Login />
+                </PageWrapper>
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/signin"
+            element={
+              <AuthLayout>
+                <PageWrapper>
+                  <Login />
+                </PageWrapper>
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <AuthLayout>
+                <PageWrapper>
+                  <Signup />
+                </PageWrapper>
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <AuthLayout>
+                <PageWrapper>
+                  <Profile />
+                </PageWrapper>
+              </AuthLayout>
+            }
+          />
 
-            {/* SHOP */}
-            <Route path="/shop" element={<PageWrapper><Shop /></PageWrapper>}>
-              <Route index element={<ShopHome />} />
-              <Route path="mens" element={<PageWrapper><Mens /></PageWrapper>} />
-              <Route path="womens" element={<PageWrapper><Womens /></PageWrapper>} />
-              <Route path="kids" element={<PageWrapper><Kids /></PageWrapper>} />
-              <Route path="girls" element={<PageWrapper><Girls /></PageWrapper>} />
-              <Route path="arrivals" element={<Placeholder title="New Arrivals" description="Fresh drops landing every week. Stay tuned!" />} />
-              <Route path="sale" element={<Placeholder title="Sale — Up to 50% Off" description="Grab your favorites before they're gone." />} />
-            </Route>
+          {/* ---------- MAIN SITE (with Navbar + Footer) ---------- */}
+          <Route
+            path="/*"
+            element={
+              <MainLayout>
+                <Routes>
+                  {/* CORE */}
+                  <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+                  <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+                  <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
+                  <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
 
-            {/* AUTH */}
-            <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
-            <Route path="/signin" element={<PageWrapper><Login /></PageWrapper>} />
-            <Route path="/signup" element={<PageWrapper><Signup /></PageWrapper>} />
+                  {/* PRODUCTS (nested layout) */}
+                  <Route path="/products" element={<AllproductNav />}>
+                    <Route index element={<Products />} />
+                    <Route path="mens" element={<MensProducts />} />
+                    <Route path="womens" element={<WomensProducts />} />
+                    <Route path="kids" element={<KidsProducts />} />
+                    <Route path="girls" element={<GirlsProducts />} />
+                    <Route path="arrivals" element={<Arrivals />} />
+                    <Route path="sale" element={<Sale />} />
+                  </Route>
 
-            {/* USER */}
-            <Route path="/wishlist" element={<PageWrapper><WishList /></PageWrapper>} />
-            <Route path="/wishList" element={<PageWrapper><WishList /></PageWrapper>} />
-            <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
+                  {/* USER */}
+                  <Route path="/wishlist" element={<PageWrapper><WishList /></PageWrapper>} />
+                  <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
 
-            {/* ✅ ALL PLACEHOLDER ROUTES — COMPACT */}
-            {placeholderRoutes.map(({ path, title, description }) => (
-              <Route key={path} path={path} element={<Placeholder title={title} description={description} />} />
-            ))}
+                  {/* PLACEHOLDER ROUTES */}
+                  {placeholderRoutes.map(({ path, title, description }) => (
+                    <Route
+                      key={path}
+                      path={path}
+                      element={<Placeholder title={title} description={description} />}
+                    />
+                  ))}
 
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </main>
-      <Footer />
-    </div>
+                  {/* 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </MainLayout>
+            }
+          />
+        </Routes>
+      </AnimatePresence>
+    </>
   );
 };
 

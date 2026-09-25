@@ -1,4 +1,3 @@
-// data/products.js
 
 export const products = [
   // ==================== MENS ====================

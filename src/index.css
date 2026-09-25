@@ -34,3 +34,25 @@ html {
 .noInvertImg {
   filter: invert(0);
 }
+.btn-dark-gradient {
+  background: linear-gradient(to right, #111827 0%, #312e81 50%, #111827 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+}
+
+.btn-dark-gradient:hover {
+  background: linear-gradient(to right, #4f46e5 0%, #9333ea 50%, #4f46e5 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(79, 70, 229, 0.4);
+}
+
+.btn-dark-gradient:active {
+  transform: translateY(0) scale(0.97);
+}
