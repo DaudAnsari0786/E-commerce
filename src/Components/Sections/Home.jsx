@@ -5,6 +5,7 @@ import Arrival from "./Arrivals"
 import Shop from '../FEATURES/AllproductNav';
 import Contact from './Contact';
 import Testimonial from "./Testimonial"
+import Profile from '../Forms/Profile';
 const Home = () => {
   const container = {
     hidden: { opacity: 0 },
@@ -319,20 +320,13 @@ const Home = () => {
         </div>
       </motion.div>
 
-<motion.div className="">
-<About/>
-</motion.div>
+
 <div className="">
-  <Shop/>
+  <Profile/>
 </div>
+
 <div className="">
-  <Arrival/>
-</div>
-<div className="">
-  <Contact/>
-</div>
-<div className="">
-  <Testimonial/>
+  {/* <Testimonial/> */}
 </div>
       {/* Marquee keyframes */}
       <style>{`

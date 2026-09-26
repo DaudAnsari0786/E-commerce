@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Navbar from './Components/Navbar/Navbar';
@@ -9,8 +9,6 @@ import Footer from './Components/Footer/Footer';
 import Products from './Components/Sections/Products';
 import Contact from './Components/Sections/Contact';
 import Resource from './Components/Sections/Resource';
-import Login from './Components/Forms/Login';
-import Signup from './Components/Forms/Signup';
 import WishList from './Components/Sections/WishList';
 import Cart from './Components/Sections/Cart';
 import Arrivals from './Components/Sections/Arrivals';
@@ -21,6 +19,12 @@ import KidsProducts from './Components/CATEGORIES/KidsProducts';
 import GirlsProducts from './Components/CATEGORIES/GirlsProducts';
 import AllproductNav from './Components/FEATURES/AllproductNav';
 import Profile from './Components/Forms/Profile';
+import EditProfile from './Components/Forms/EditProfile';   // ✅ import the real EditProfile
+import Settings from './Components/Forms/Settings';
+import Address from './Components/Forms/Address';
+import Orders from './Components/Forms/Orders';
+import { useUser } from './context/UserContext';
+import FAQ from './FooterLinks/FAQ';
 
 /* ---------- Page transition variants ---------- */
 const pageVariants = {
@@ -50,10 +54,11 @@ const MainLayout = ({ children }) => (
   </div>
 );
 
-/* ---------- Layout for auth/profile (no Navbar/Footer) ---------- */
-const AuthLayout = ({ children }) => (
-  <div className="min-h-screen bg-gray-50">{children}</div>
-);
+/* ---------- Route guard ---------- */
+const RequireLogin = ({ children }) => {
+  const { user } = useUser();
+  return user ? children : <Navigate to="/" replace />;
+};
 
 /* ---------- Placeholder ---------- */
 const Placeholder = ({ title, description }) => (
@@ -144,49 +149,6 @@ const App = () => {
       <ScrollToTop />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* ---------- AUTH SECTION (no Navbar/Footer) ---------- */}
-          <Route
-            path="/login"
-            element={
-              <AuthLayout>
-                <PageWrapper>
-                  <Login />
-                </PageWrapper>
-              </AuthLayout>
-            }
-          />
-          <Route
-            path="/signin"
-            element={
-              <AuthLayout>
-                <PageWrapper>
-                  <Login />
-                </PageWrapper>
-              </AuthLayout>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <AuthLayout>
-                <PageWrapper>
-                  <Signup />
-                </PageWrapper>
-              </AuthLayout>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <AuthLayout>
-                <PageWrapper>
-                  <Profile />
-                </PageWrapper>
-              </AuthLayout>
-            }
-          />
-
-          {/* ---------- MAIN SITE (with Navbar + Footer) ---------- */}
           <Route
             path="/*"
             element={
@@ -197,6 +159,9 @@ const App = () => {
                   <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
                   <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
                   <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
+
+                  {/* Footer Links */}
+                  <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
 
                   {/* PRODUCTS (nested layout) */}
                   <Route path="/products" element={<AllproductNav />}>
@@ -209,9 +174,69 @@ const App = () => {
                     <Route path="sale" element={<Sale />} />
                   </Route>
 
-                  {/* USER */}
-                  <Route path="/wishlist" element={<PageWrapper><WishList /></PageWrapper>} />
-                  <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
+
+                  {/* ✅ PROTECTED — only logged-in users can access */}
+
+                  {/* Profile — READ-ONLY view of the user's details */}
+                  <Route
+                    path="/profile"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><Profile /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
+
+                  {/* Edit Profile — the edit form */}
+                  <Route
+                    path="/edit-profile"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><EditProfile /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
+
+                  <Route
+                    path="/settings"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><Settings /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
+                  <Route
+                    path="/addresses"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><Address /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
+                  <Route
+                    path="/orders"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><Orders /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
+                  <Route
+                    path="/wishlist"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><WishList /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
+                  <Route
+                    path="/cart"
+                    element={
+                      <RequireLogin>
+                        <PageWrapper><Cart /></PageWrapper>
+                      </RequireLogin>
+                    }
+                  />
 
                   {/* PLACEHOLDER ROUTES */}
                   {placeholderRoutes.map(({ path, title, description }) => (

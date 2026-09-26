@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useUser } from '../../context/UserContext';
 import {
   Menu as MenuIcon,
   X,
@@ -21,6 +22,7 @@ import {
   Heart,
   User,
   UserCircle,
+  Pencil,
   LogIn,
   UserPlus,
   Package,
@@ -113,30 +115,114 @@ const mobileLinks = [
 
 const allMobileLinks = [...desktopLinksBefore, ...desktopLinksAfter, ...mobileLinks];
 
-// NEW: Profile-specific quick links shown when logged in
+/* ---------- Profile links — 5 unique entries with distinct paths ---------- */
 const profileMenuLinks = [
-  { label: 'My Profile', description: 'View & edit your details', href: '/profile',   icon: UserCircle },
-  { label: 'My Orders',  description: 'Track your purchases',     href: '/orders',    icon: Package    },
-  { label: 'Addresses',  description: 'Manage delivery addresses', href: '/addresses', icon: MapPin     },
-  { label: 'Settings',   description: 'Preferences & security',   href: '/settings',  icon: Settings   },
+  {
+    label: 'My Profile',
+    description: 'View your details',
+    href: '/profile',
+    icon: UserCircle,
+    theme: 'emerald',
+  },
+  {
+    label: 'Edit Profile',
+    description: 'Update your info',
+    href: '/edit-profile',        // ✅ correct path
+    icon: Pencil,
+    theme: 'indigo',
+  },
+  {
+    label: 'My Orders',
+    description: 'Track your purchases',
+    href: '/orders',
+    icon: Package,
+    theme: 'amber',
+  },
+  {
+    label: 'Addresses',
+    description: 'Delivery addresses',
+    href: '/addresses',
+    icon: MapPin,
+    theme: 'rose',
+  },
+  {
+    label: 'Settings',
+    description: 'Preferences & security',
+    href: '/settings',
+    icon: Settings,
+    theme: 'sky',
+  },
 ];
 
-// Account routes — used for active-state sync
+/* ---------- Account routes for active-state sync ---------- */
 const accountRoutes = [
-  { key: 'profile',   path: '/profile'   },
-  { key: 'orders',    path: '/orders'    },
-  { key: 'addresses', path: '/addresses' },
-  { key: 'settings',  path: '/settings'  },
-  { key: 'login',     path: '/signin'    },
-  { key: 'signup',    path: '/signup'    },
-  { key: 'wishlist',  path: '/wishlist'  },
-  { key: 'cart',      path: '/cart'      },
+  { key: 'edit-profile', path: '/edit-profile' },   // ✅ correct path first
+  { key: 'profile',      path: '/profile'      },
+  { key: 'orders',       path: '/orders'       },
+  { key: 'addresses',    path: '/addresses'    },
+  { key: 'settings',     path: '/settings'     },
+  { key: 'wishlist',     path: '/wishlist'     },
+  { key: 'cart',         path: '/cart'         },
 ];
+
+/* ============================== Theme map ============================== */
+const themeStyles = {
+  indigo: {
+    tile: 'bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600',
+    tileHover: 'group-hover:from-indigo-500 group-hover:to-indigo-600 group-hover:text-white',
+    text: 'group-hover:text-indigo-700',
+    row: 'hover:bg-indigo-50/70',
+    chevron: 'group-hover:text-indigo-600',
+  },
+  emerald: {
+    tile: 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600',
+    tileHover: 'group-hover:from-emerald-500 group-hover:to-emerald-600 group-hover:text-white',
+    text: 'group-hover:text-emerald-700',
+    row: 'hover:bg-emerald-50/70',
+    chevron: 'group-hover:text-emerald-600',
+  },
+  rose: {
+    tile: 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600',
+    tileHover: 'group-hover:from-rose-500 group-hover:to-rose-600 group-hover:text-white',
+    text: 'group-hover:text-rose-700',
+    row: 'hover:bg-rose-50/70',
+    chevron: 'group-hover:text-rose-600',
+  },
+  amber: {
+    tile: 'bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600',
+    tileHover: 'group-hover:from-amber-500 group-hover:to-amber-600 group-hover:text-white',
+    text: 'group-hover:text-amber-700',
+    row: 'hover:bg-amber-50/70',
+    chevron: 'group-hover:text-amber-600',
+  },
+  sky: {
+    tile: 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-600',
+    tileHover: 'group-hover:from-sky-500 group-hover:to-sky-600 group-hover:text-white',
+    text: 'group-hover:text-sky-700',
+    row: 'hover:bg-sky-50/70',
+    chevron: 'group-hover:text-sky-600',
+  },
+  pink: {
+    tile: 'bg-gradient-to-br from-pink-50 to-pink-100 text-pink-600',
+    tileHover: 'group-hover:from-pink-500 group-hover:to-pink-600 group-hover:text-white',
+    text: 'group-hover:text-pink-700',
+    row: 'hover:bg-pink-50/70',
+    chevron: 'group-hover:text-pink-600',
+  },
+  blue: {
+    tile: 'bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600',
+    tileHover: 'group-hover:from-blue-500 group-hover:to-blue-600 group-hover:text-white',
+    text: 'group-hover:text-blue-700',
+    row: 'hover:bg-blue-50/70',
+    chevron: 'group-hover:text-blue-600',
+  },
+};
 
 /* ============================== Component ============================== */
 const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, login, signup, logout } = useUser();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -144,17 +230,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
   const [activeAccountRow, setActiveAccountRow] = useState(null);
-
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = localStorage.getItem('user');
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
 
   const [desktopSearch, setDesktopSearch] = useState('');
   const desktopSearchRef = useRef(null);
@@ -195,23 +271,31 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
     setIsSearchOpen(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
+  const handleLogin = () => {
+    login();
     setIsAccountOpen(false);
     closeMobileMenu();
-    navigate('/login');
+    navigate('/');
+  };
+
+  const handleSignup = () => {
+    signup();
+    setIsAccountOpen(false);
+    closeMobileMenu();
+    navigate('/');
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsAccountOpen(false);
+    closeMobileMenu();
+    navigate('/');
   };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (shopRef.current && !shopRef.current.contains(e.target)) {
-        setIsShopOpen(false);
-      }
-      if (accountRef.current && !accountRef.current.contains(e.target)) {
-        setIsAccountOpen(false);
-      }
+      if (shopRef.current && !shopRef.current.contains(e.target)) setIsShopOpen(false);
+      if (accountRef.current && !accountRef.current.contains(e.target)) setIsAccountOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -225,20 +309,13 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
 
     const match = accountRoutes.find((r) => location.pathname.startsWith(r.path));
     setActiveAccountRow(match ? match.key : null);
-
-    try {
-      const raw = localStorage.getItem('user');
-      setUser(raw ? JSON.parse(raw) : null);
-    } catch {
-      setUser(null);
-    }
   }, [location.pathname]);
 
   const isProductsSection = location.pathname.startsWith(PRODUCTS_BASE);
   const isAccountSection = activeAccountRow !== null;
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Guest';
-  const initials = (user?.name || user?.email || 'G')
+  const displayName = user?.name || 'Guest';
+  const initials = (user?.name || 'G')
     .split(' ')
     .map((w) => w[0])
     .slice(0, 2)
@@ -255,14 +332,10 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
       isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
     }`;
 
-  const accountRowClass = (key, activeClass, hoverClass = 'hover:bg-gray-50') =>
-    `flex items-center gap-3 rounded-md p-3 transition-colors ${
-      activeAccountRow === key ? activeClass : hoverClass
-    }`;
-
   const handleAccountClick = (key) => {
     setActiveAccountRow(key);
     setIsAccountOpen(false);
+
   };
 
   const handleMobileAccountClick = (key) => {
@@ -270,104 +343,183 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
     closeMobileMenu();
   };
 
-  /* ---------- Shared: Profile block (desktop + mobile) ---------- */
-
-  // Profile header (if logged in)
+  /* ---------- Profile header ---------- */
   const profileHeader = user && (
-    <>
-      <Link
-        to="/profile"
-        className={accountRowClass('profile', 'bg-indigo-50', 'hover:bg-indigo-50')}
-        onClick={() => handleAccountClick('profile')}
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xs font-bold">
+    <Link
+      to="/profile"
+      className="group relative flex items-center gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50"
+      onClick={() => handleAccountClick('profile')}
+    >
+      <div className="relative">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white text-sm font-bold shadow-md shadow-indigo-500/30 transition-transform duration-200 group-hover:scale-105">
           {initials}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 truncate">{displayName}</p>
-          <p className="text-xs text-gray-500 truncate">{user.email}</p>
-        </div>
-      </Link>
+        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+          {displayName}
+        </p>
+        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+    </Link>
+  );
 
-      <div className="my-2 border-t border-gray-100" />
-
-      {/* Profile quick links */}
-      {profileMenuLinks.map(({ label, description, href, icon: Icon }, i) => (
-        <Link
-          key={label}
-          to={href}
-          className={`group flex items-center gap-3 rounded-md p-3 transition-colors ${
-            activeAccountRow === label.toLowerCase().replace(/\s+/g, '-')
-              ? 'bg-blue-50 text-blue-700'
-              : 'text-gray-700 hover:bg-blue-50'
-          }`}
-          onClick={() => handleAccountClick(label.toLowerCase().replace(/\s+/g, '-'))}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-50 text-gray-600 transition-colors duration-300 group-hover:bg-blue-100 group-hover:text-blue-700">
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900">{label}</p>
-            <p className="text-xs text-gray-500 truncate">{description}</p>
-          </div>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-blue-600" />
-        </Link>
-      ))}
-
-      <div className="my-2 border-t border-gray-100" />
+  /* ---------- Profile menu links ---------- */
+  const profileMenuBlock = user && (
+    <>
+      <p className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        Your account
+      </p>
+      {profileMenuLinks.map(({ label, description, href, icon: Icon, theme }) => {
+        const t = themeStyles[theme] || themeStyles.indigo;
+        return (
+          <Link
+            key={href}
+            to={href}
+            className={`group flex items-center gap-3 rounded-lg p-2.5 transition-all duration-200 ${t.row} hover:translate-x-0.5`}
+            onClick={() => handleAccountClick(label.toLowerCase().replace(/\s+/g, '-'))}
+          >
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${t.tile} ${t.tileHover} transition-all duration-200 group-hover:scale-105 group-hover:shadow-md`}
+            >
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold text-gray-900 ${t.text} transition-colors`}>
+                {label}
+              </p>
+              <p className="text-xs text-gray-500 truncate">{description}</p>
+            </div>
+            <ChevronRight
+              className={`h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 ${t.chevron}`}
+            />
+          </Link>
+        );
+      })}
     </>
   );
 
-  // Login + Signup rows (if not logged in)
+  /* ---------- Login + Signup rows ---------- */
   const loginRows = !user && (
     <>
-      <Link
-        to="/signin"
-        className={accountRowClass('login', 'bg-blue-50', 'hover:bg-blue-50')}
-        onClick={() => handleAccountClick('login')}
+      <p className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        Welcome
+      </p>
+
+      <button
+        type="button"
+        onClick={handleLogin}
+        className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-all duration-200 hover:bg-indigo-50/70 hover:translate-x-0.5"
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 transition-all duration-200 group-hover:from-indigo-500 group-hover:to-indigo-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
           <LogIn className="h-4 w-4" />
         </div>
-        <div>
-          <p className="font-semibold text-gray-900">Login</p>
-          <p className="text-xs text-gray-500">Sign in to your account</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+            Login
+          </p>
+          <p className="text-xs text-gray-500 truncate">Sign in to your account</p>
         </div>
-      </Link>
+        <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-indigo-600" />
+      </button>
 
-      <Link
-        to="/signup"
-        className={`mt-1 ${accountRowClass('signup', 'bg-indigo-50', 'hover:bg-indigo-50')}`}
-        onClick={() => handleAccountClick('signup')}
+      <button
+        type="button"
+        onClick={handleSignup}
+        className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-all duration-200 hover:bg-purple-50/70 hover:translate-x-0.5"
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-50 text-indigo-700">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 transition-all duration-200 group-hover:from-purple-500 group-hover:to-purple-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
           <UserPlus className="h-4 w-4" />
         </div>
-        <div>
-          <p className="font-semibold text-gray-900">Sign up</p>
-          <p className="text-xs text-gray-500">Create a new account</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+            Sign up
+          </p>
+          <p className="text-xs text-gray-500 truncate">Create a new account</p>
         </div>
-      </Link>
+        <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-purple-600" />
+      </button>
 
       <div className="my-2 border-t border-gray-100" />
     </>
   );
 
-  // Sign-out button (if logged in)
-  const signOutRow = user && (
-    <button
-      type="button"
-      onClick={handleLogout}
-      className="group mt-1 flex w-full items-center gap-3 rounded-md p-3 text-left transition-colors hover:bg-rose-50"
-    >
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100">
-        <LogOut className="h-4 w-4" />
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-rose-600">Sign out</p>
-        <p className="text-xs text-gray-500">Log out of your account</p>
-      </div>
-    </button>
+  /* ---------- Wishlist + Cart + Sign out ---------- */
+  const accountActionsBlock = (
+    <>
+      <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        {user ? 'Shopping' : 'Your bag'}
+      </p>
+
+      {/* Wishlist */}
+      <Link
+        to="/wishlist"
+        className="group flex items-center gap-3 rounded-lg p-2.5 transition-all duration-200 hover:bg-pink-50/70 hover:translate-x-0.5"
+        onClick={() => handleAccountClick('wishlist')}
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 text-pink-600 transition-all duration-200 group-hover:from-pink-500 group-hover:to-pink-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
+          <Heart className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 group-hover:text-pink-700 transition-colors">
+            Wishlist
+          </p>
+          <p className="text-xs text-gray-500 truncate">Your saved items</p>
+        </div>
+        {wishlistCount > 0 && (
+          <span className="bg-gradient-to-br from-pink-500 to-rose-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-sm shadow-pink-500/30">
+            {wishlistCount}
+          </span>
+        )}
+        <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-pink-600" />
+      </Link>
+
+      {/* Cart */}
+      <Link
+        to="/cart"
+        className="group mt-0.5 flex items-center gap-3 rounded-lg p-2.5 transition-all duration-200 hover:bg-blue-50/70 hover:translate-x-0.5"
+        onClick={() => handleAccountClick('cart')}
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 transition-all duration-200 group-hover:from-blue-500 group-hover:to-blue-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
+          <ShoppingCart className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+            Cart
+          </p>
+          <p className="text-xs text-gray-500 truncate">Review & checkout</p>
+        </div>
+        {cartCount > 0 && (
+          <span className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-sm shadow-blue-500/30">
+            {cartCount}
+          </span>
+        )}
+        <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600" />
+      </Link>
+
+      {/* Sign out */}
+      {user && (
+        <>
+          <div className="my-2 border-t border-gray-100" />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-all duration-200 hover:bg-rose-50/70 hover:translate-x-0.5"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 transition-all duration-200 group-hover:from-rose-500 group-hover:to-rose-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
+              <LogOut className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-rose-600 transition-colors">Sign out</p>
+              <p className="text-xs text-gray-500 truncate">Log out of your account</p>
+            </div>
+            <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-rose-600" />
+          </button>
+        </>
+      )}
+    </>
   );
 
   return (
@@ -392,7 +544,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
             </Link>
           </motion.div>
 
-          {/* ==================== DESKTOP NAV ==================== */}
+          {/* Desktop nav */}
           <div className="hidden items-center gap-1 lg:flex">
             {desktopLinksBefore.map((item, i) => (
               <motion.div
@@ -534,7 +686,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
             ))}
           </div>
 
-          {/* ==================== DESKTOP SEARCH + ACCOUNT ==================== */}
+          {/* Desktop Search + Account */}
           <motion.div
             className="hidden lg:flex items-center gap-3"
             variants={navItemVariants}
@@ -542,7 +694,6 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
             animate="visible"
             custom={5}
           >
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
@@ -552,7 +703,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
                 onChange={(e) => setDesktopSearch(e.target.value)}
                 onKeyDown={handleSearch}
                 placeholder="Search clothes..."
-                className="w-48 xl:w-64 bg-gray-100 pl-9 pr-9 py-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                className="w-58 xl:w-94 bg-gray-100 pl-9 pr-9 py-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
               />
               <AnimatePresence>
                 {desktopSearch.length > 0 && (
@@ -572,29 +723,32 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
               </AnimatePresence>
             </div>
 
-            {/* Account Dropdown */}
             <div className="relative" ref={accountRef}>
               <motion.button
                 type="button"
                 onClick={toggleAccount}
-                className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
                   isAccountOpen || isAccountSection
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm shadow-indigo-500/10'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                 }`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.97 }}
                 aria-expanded={isAccountOpen}
                 aria-haspopup="true"
               >
                 {user ? (
-                  <span className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm shadow-indigo-500/30">
                     {initials}
                   </span>
                 ) : (
-                  <User className="h-4 w-4" />
+                  <span className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                    <User className="h-3.5 w-3.5" />
+                  </span>
                 )}
-                {user ? displayName.split(' ')[0] : 'Account'}
+                <span className="font-semibold">
+                  {user ? displayName.split(' ')[0] : 'Account'}
+                </span>
                 <motion.svg
                   className="h-3 w-3"
                   animate={{ rotate: isAccountOpen ? 180 : 0 }}
@@ -608,57 +762,15 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
               <AnimatePresence>
                 {isAccountOpen && (
                   <motion.div
-                    className="absolute right-0 top-full z-50 mt-2"
+                    className="absolute right-0 top-full z-50 mt-3"
                     variants={dropdownVariants}
                     initial="hidden" animate="visible" exit="exit"
                   >
-                    <div className="w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-xl">
-                      {/* Profile block (if logged in) OR Login/Signup (if not) */}
+                    <div className="w-80 rounded-2xl border border-gray-100 bg-white p-2.5 shadow-2xl shadow-indigo-500/10 ring-1 ring-black/[0.02]">
                       {profileHeader}
+                      {profileMenuBlock}
                       {loginRows}
-
-                      {/* Wishlist */}
-                      <Link
-                        to="/wishlist"
-                        className={accountRowClass('wishlist', 'bg-red-50', 'hover:bg-red-50')}
-                        onClick={() => handleAccountClick('wishlist')}
-                      >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-600">
-                          <Heart className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">Wishlist</p>
-                          <p className="text-xs text-gray-500">Your saved items</p>
-                        </div>
-                        {wishlistCount > 0 && (
-                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                            {wishlistCount}
-                          </span>
-                        )}
-                      </Link>
-
-                      {/* Cart */}
-                      <Link
-                        to="/cart"
-                        className={`mt-1 ${accountRowClass('cart', 'bg-blue-50', 'hover:bg-blue-50')}`}
-                        onClick={() => handleAccountClick('cart')}
-                      >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-50 text-blue-700">
-                          <ShoppingCart className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">Cart</p>
-                          <p className="text-xs text-gray-500">Review & checkout</p>
-                        </div>
-                        {cartCount > 0 && (
-                          <span className="bg-blue-700 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                            {cartCount}
-                          </span>
-                        )}
-                      </Link>
-
-                      {/* Sign out (if logged in) */}
-                      {signOutRow}
+                      {accountActionsBlock}
                     </div>
                   </motion.div>
                 )}
@@ -666,7 +778,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
             </div>
           </motion.div>
 
-          {/* ==================== MOBILE ACTIONS ==================== */}
+          {/* Mobile actions */}
           <div className="flex items-center gap-1.5 lg:hidden">
             <motion.button
               className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-2"
@@ -701,7 +813,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
           </div>
         </nav>
 
-        {/* ==================== MOBILE SEARCH ==================== */}
+        {/* Mobile search */}
         <AnimatePresence>
           {isSearchOpen && (
             <motion.div
@@ -744,7 +856,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
           )}
         </AnimatePresence>
 
-        {/* ==================== MOBILE MENU ==================== */}
+        {/* Mobile menu */}
         <AnimatePresence>
           {isMobileOpen && (
             <motion.div
@@ -814,45 +926,31 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
                         transition={{ duration: 0.3, ease: 'easeInOut' }}
                       >
                         <div className="grid gap-1 p-2">
-                          <motion.div
-                            variants={featureItemVariants}
-                            initial="hidden" animate="visible"
-                            custom={0}
-                            whileHover={{ x: 4 }}
+                          <Link
+                            to={PRODUCTS_BASE}
+                            className="flex items-center gap-3 rounded-md p-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50"
+                            onClick={closeMobileMenu}
                           >
-                            <Link
-                              to={PRODUCTS_BASE}
-                              className="flex items-center gap-3 rounded-md p-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50"
-                              onClick={closeMobileMenu}
-                            >
-                              View all products →
-                            </Link>
-                          </motion.div>
+                            View all products →
+                          </Link>
 
-                          {[...productCategories, ...productHighlights].map((cat, index) => {
+                          {[...productCategories, ...productHighlights].map((cat) => {
                             const Icon = cat.icon;
                             return (
-                              <motion.div
+                              <Link
                                 key={cat.title}
-                                variants={featureItemVariants}
-                                initial="hidden" animate="visible"
-                                custom={index + 1}
-                                whileHover={{ x: 4 }}
+                                to={cat.href}
+                                className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-blue-50"
+                                onClick={closeMobileMenu}
                               >
-                                <Link
-                                  to={cat.href}
-                                  className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-blue-50"
-                                  onClick={closeMobileMenu}
-                                >
-                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700">
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                  <div>
-                                    <p className="mb-1 font-semibold text-gray-900">{cat.title}</p>
-                                    <p className="text-sm text-gray-500">{cat.description}</p>
-                                  </div>
-                                </Link>
-                              </motion.div>
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="mb-1 font-semibold text-gray-900">{cat.title}</p>
+                                  <p className="text-sm text-gray-500">{cat.description}</p>
+                                </div>
+                              </Link>
                             );
                           })}
                         </div>
@@ -899,198 +997,193 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
                         transition={{ duration: 0.3, ease: 'easeInOut' }}
                       >
                         <div className="grid gap-1 p-2">
-                          {/* Profile header (if logged in) */}
+                          {/* Profile header */}
                           {user && (
-                            <motion.div
-                              variants={featureItemVariants}
-                              initial="hidden" animate="visible"
-                              custom={0}
-                              whileHover={{ x: 4 }}
+                            <Link
+                              to="/profile"
+                              className="group flex items-center gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50"
+                              onClick={() => handleMobileAccountClick('profile')}
                             >
-                              <Link
-                                to="/profile"
-                                className={`flex items-center gap-3 rounded-md p-3 transition-colors ${
-                                  activeAccountRow === 'profile' ? 'bg-indigo-50' : 'hover:bg-indigo-50'
-                                }`}
-                                onClick={() => handleMobileAccountClick('profile')}
-                              >
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-[10px] font-bold">
+                              <div className="relative">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white text-[11px] font-bold shadow-sm shadow-indigo-500/30">
                                   {initials}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-gray-900 truncate">
-                                    {displayName}
-                                  </p>
-                                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                                </div>
-                              </Link>
-                            </motion.div>
+                                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+                                  {displayName}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+                            </Link>
                           )}
 
-                          {/* Profile quick links (if logged in) */}
-                          {user &&
-                            profileMenuLinks.map(({ label, description, href, icon: Icon }, i) => (
-                              <motion.div
-                                key={label}
-                                variants={featureItemVariants}
-                                initial="hidden" animate="visible"
-                                custom={i + 1}
-                                whileHover={{ x: 4 }}
-                              >
-                                <Link
-                                  to={href}
-                                  className="group flex items-center gap-3 rounded-md p-3 transition-colors hover:bg-blue-50"
-                                  onClick={() =>
-                                    handleMobileAccountClick(label.toLowerCase().replace(/\s+/g, '-'))
-                                  }
-                                >
-                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700">
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900">{label}</p>
-                                    <p className="text-xs text-gray-500 truncate">{description}</p>
-                                  </div>
-                                  <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-600" />
-                                </Link>
-                              </motion.div>
-                            ))}
+                          {/* Profile quick links */}
+                          {user && (
+                            <>
+                              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Your account
+                              </p>
+                              {profileMenuLinks.map(
+                                ({ label, description, href, icon: Icon, theme }) => {
+                                  const t = themeStyles[theme] || themeStyles.indigo;
+                                  return (
+                                    <Link
+                                      key={href}
+                                      to={href}
+                                      className={`group flex items-center gap-3 rounded-lg p-2.5 transition-all duration-200 ${t.row} hover:translate-x-0.5`}
+                                      onClick={() =>
+                                        handleMobileAccountClick(
+                                          label.toLowerCase().replace(/\s+/g, '-')
+                                        )
+                                      }
+                                    >
+                                      <div
+                                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${t.tile} ${t.tileHover} transition-all duration-200 group-hover:scale-105 group-hover:shadow-md`}
+                                      >
+                                        <Icon className="h-4 w-4" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p
+                                          className={`text-sm font-semibold text-gray-900 ${t.text} transition-colors`}
+                                        >
+                                          {label}
+                                        </p>
+                                        <p className="text-xs text-gray-500 truncate">
+                                          {description}
+                                        </p>
+                                      </div>
+                                      <ChevronRight
+                                        className={`h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 ${t.chevron}`}
+                                      />
+                                    </Link>
+                                  );
+                                }
+                              )}
+                            </>
+                          )}
 
-                          {/* Login (if not logged in) */}
+                          {/* Login + Sign up (if not logged in) */}
                           {!user && (
-                            <motion.div
-                              variants={featureItemVariants}
-                              initial="hidden" animate="visible"
-                              custom={0}
-                              whileHover={{ x: 4 }}
-                            >
-                              <Link
-                                to="/signin"
-                                className={`flex items-start gap-3 rounded-md p-3 transition-colors ${
-                                  activeAccountRow === 'login' ? 'bg-blue-50' : 'hover:bg-blue-50'
-                                }`}
-                                onClick={() => handleMobileAccountClick('login')}
+                            <>
+                              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Welcome
+                              </p>
+
+                              <button
+                                type="button"
+                                onClick={handleLogin}
+                                className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-all duration-200 hover:bg-indigo-50/70 hover:translate-x-0.5"
                               >
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 transition-all duration-200 group-hover:from-indigo-500 group-hover:to-indigo-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
                                   <LogIn className="h-4 w-4" />
                                 </div>
-                                <div>
-                                  <p className="mb-1 font-semibold text-gray-900">Login</p>
-                                  <p className="text-sm text-gray-500">Sign in to your account</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                                    Login
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    Sign in to your account
+                                  </p>
                                 </div>
-                              </Link>
-                            </motion.div>
-                          )}
+                                <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-indigo-600" />
+                              </button>
 
-                          {/* Sign up (if not logged in) */}
-                          {!user && (
-                            <motion.div
-                              variants={featureItemVariants}
-                              initial="hidden" animate="visible"
-                              custom={1}
-                              whileHover={{ x: 4 }}
-                            >
-                              <Link
-                                to="/signup"
-                                className={`flex items-start gap-3 rounded-md p-3 transition-colors ${
-                                  activeAccountRow === 'signup' ? 'bg-indigo-50' : 'hover:bg-indigo-50'
-                                }`}
-                                onClick={() => handleMobileAccountClick('signup')}
+                              <button
+                                type="button"
+                                onClick={handleSignup}
+                                className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-all duration-200 hover:bg-purple-50/70 hover:translate-x-0.5"
                               >
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-700">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 transition-all duration-200 group-hover:from-purple-500 group-hover:to-purple-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
                                   <UserPlus className="h-4 w-4" />
                                 </div>
-                                <div>
-                                  <p className="mb-1 font-semibold text-gray-900">Sign up</p>
-                                  <p className="text-sm text-gray-500">Create a new account</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+                                    Sign up
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    Create a new account
+                                  </p>
                                 </div>
-                              </Link>
-                            </motion.div>
+                                <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-purple-600" />
+                              </button>
+                            </>
                           )}
 
-                          {/* Divider between profile links and wishlist/cart */}
-                          {user && <div className="my-1 border-t border-gray-100" />}
+                          {/* Wishlist + Cart + Sign out */}
+                          <div className="my-2 border-t border-gray-100" />
+                          <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            {user ? 'Shopping' : 'Your bag'}
+                          </p>
 
-                          {/* Wishlist */}
-                          <motion.div
-                            variants={featureItemVariants}
-                            initial="hidden" animate="visible"
-                            custom={2}
-                            whileHover={{ x: 4 }}
+                          <Link
+                            to="/wishlist"
+                            className="group flex items-center gap-3 rounded-lg p-2.5 transition-all duration-200 hover:bg-pink-50/70 hover:translate-x-0.5"
+                            onClick={() => handleMobileAccountClick('wishlist')}
                           >
-                            <Link
-                              to="/wishlist"
-                              className={`flex items-center gap-3 rounded-md p-3 transition-colors ${
-                                activeAccountRow === 'wishlist' ? 'bg-red-50' : 'hover:bg-red-50'
-                              }`}
-                              onClick={() => handleMobileAccountClick('wishlist')}
-                            >
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50 text-red-600">
-                                <Heart className="h-4 w-4" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-semibold text-gray-900">Wishlist</p>
-                                <p className="text-xs text-gray-500">Your saved items</p>
-                              </div>
-                              {wishlistCount > 0 && (
-                                <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                  {wishlistCount}
-                                </span>
-                              )}
-                            </Link>
-                          </motion.div>
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 text-pink-600 transition-all duration-200 group-hover:from-pink-500 group-hover:to-pink-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
+                              <Heart className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 group-hover:text-pink-700 transition-colors">
+                                Wishlist
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">Your saved items</p>
+                            </div>
+                            {wishlistCount > 0 && (
+                              <span className="bg-gradient-to-br from-pink-500 to-rose-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-sm shadow-pink-500/30">
+                                {wishlistCount}
+                              </span>
+                            )}
+                            <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-pink-600" />
+                          </Link>
 
-                          {/* Cart */}
-                          <motion.div
-                            variants={featureItemVariants}
-                            initial="hidden" animate="visible"
-                            custom={3}
-                            whileHover={{ x: 4 }}
+                          <Link
+                            to="/cart"
+                            className="group flex items-center gap-3 rounded-lg p-2.5 transition-all duration-200 hover:bg-blue-50/70 hover:translate-x-0.5"
+                            onClick={() => handleMobileAccountClick('cart')}
                           >
-                            <Link
-                              to="/cart"
-                              className={`flex items-center gap-3 rounded-md p-3 transition-colors ${
-                                activeAccountRow === 'cart' ? 'bg-blue-50' : 'hover:bg-blue-50'
-                              }`}
-                              onClick={() => handleMobileAccountClick('cart')}
-                            >
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700">
-                                <ShoppingCart className="h-4 w-4" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-semibold text-gray-900">Cart</p>
-                                <p className="text-xs text-gray-500">Review & checkout</p>
-                              </div>
-                              {cartCount > 0 && (
-                                <span className="bg-blue-700 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                  {cartCount}
-                                </span>
-                              )}
-                            </Link>
-                          </motion.div>
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 transition-all duration-200 group-hover:from-blue-500 group-hover:to-blue-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
+                              <ShoppingCart className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                                Cart
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">Review & checkout</p>
+                            </div>
+                            {cartCount > 0 && (
+                              <span className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-sm shadow-blue-500/30">
+                                {cartCount}
+                              </span>
+                            )}
+                            <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600" />
+                          </Link>
 
-                          {/* Sign out (if logged in) */}
                           {user && (
-                            <motion.div
-                              variants={featureItemVariants}
-                              initial="hidden" animate="visible"
-                              custom={4}
-                              whileHover={{ x: 4 }}
-                            >
+                            <>
+                              <div className="my-2 border-t border-gray-100" />
                               <button
                                 type="button"
                                 onClick={handleLogout}
-                                className="flex w-full items-center gap-3 rounded-md p-3 text-left transition-colors hover:bg-rose-50"
+                                className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-all duration-200 hover:bg-rose-50/70 hover:translate-x-0.5"
                               >
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-rose-50 text-rose-600">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 transition-all duration-200 group-hover:from-rose-500 group-hover:to-rose-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-md">
                                   <LogOut className="h-4 w-4" />
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-semibold text-rose-600">Sign out</p>
-                                  <p className="text-xs text-gray-500">Log out of your account</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-rose-600 transition-colors">
+                                    Sign out
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    Log out of your account
+                                  </p>
                                 </div>
+                                <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-rose-600" />
                               </button>
-                            </motion.div>
+                            </>
                           )}
                         </div>
                       </motion.div>
@@ -1131,7 +1224,7 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <Link
                         to="/profile"
-                        className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-800"
+                        className="flex w-full items-center justify-center gap-2 rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40"
                         onClick={() => handleMobileAccountClick('profile')}
                       >
                         <UserCircle className="h-4 w-4" />
@@ -1141,24 +1234,24 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
                   ) : (
                     <>
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Link
-                          to="/signin"
+                        <button
+                          type="button"
+                          onClick={handleLogin}
                           className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                          onClick={() => handleMobileAccountClick('login')}
                         >
                           <LogIn className="h-4 w-4" />
                           Login
-                        </Link>
+                        </button>
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Link
-                          to="/signup"
-                          className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-800"
-                          onClick={() => handleMobileAccountClick('signup')}
+                        <button
+                          type="button"
+                          onClick={handleSignup}
+                          className="flex w-full items-center justify-center gap-2 rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40"
                         >
                           <UserPlus className="h-4 w-4" />
                           Sign up
-                        </Link>
+                        </button>
                       </motion.div>
                     </>
                   )}

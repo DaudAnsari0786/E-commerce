@@ -7,142 +7,59 @@ import {
   FaPhoneAlt,
   FaMapMarkerAlt,
   FaLock,
-  FaEye,
-  FaEyeSlash,
   FaEdit,
-  FaSave,
-  FaTimes,
   FaSignOutAlt,
   FaShoppingBag,
   FaHeart,
   FaTruck,
   FaCheckCircle,
   FaCamera,
-  FaShieldAlt,
   FaBox,
+  FaChevronRight,
+  FaCrown,
+  FaCalendarAlt,
 } from 'react-icons/fa';
+import { useUser } from '../../context/UserContext';
 
 /* ---------- Animation variants ---------- */
 const fadeInUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 };
 
 const stagger = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+  visible: { opacity: 1, transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
 };
 
-/* ---------- Load user from localStorage (set by Login/Signup) ---------- */
-const loadUser = () => {
-  try {
-    const raw = localStorage.getItem('user');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-/* ---------- Demo orders (replace with real API data) ---------- */
+/* ---------- Demo orders ---------- */
 const demoOrders = [
   { id: 'SC-2409-1042', date: 'Sep 18, 2026', total: 4820, status: 'Delivered', items: 3 },
   { id: 'SC-2409-0987', date: 'Sep 05, 2026', total: 1899, status: 'Shipped', items: 1 },
   { id: 'SC-2408-0751', date: 'Aug 22, 2026', total: 3450, status: 'Delivered', items: 2 },
 ];
 
-/* ---------- Component ---------- */
+const statusStyles = {
+  Delivered: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  Shipped: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+  Processing: 'bg-amber-50 text-amber-700 ring-amber-200',
+};
+
+/* ============================== Component ============================== */
 const Profile = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(loadUser());
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const { user, logout } = useUser();
 
-  // Editable copy while editing
-  const [form, setForm] = useState({
-    name: '',
-    username: '',
-    email: '',
-    phone: '',
-    address: '',
-    password: '',
-  });
-
-  // Hydrate form whenever user changes
   useEffect(() => {
-    if (user) {
-      setForm({
-        name: user.name || '',
-        username: user.username || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        address: user.address || '',
-        password: '',
-      });
-    }
-  }, [user]);
-
-  /* ---------- Redirect to login if no user ---------- */
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
+    if (!user) navigate('/');
   }, [user, navigate]);
 
-  /* ---------- Handlers ---------- */
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    setSaving(true);
-
-    // Simulate API call — replace with real update endpoint
-    setTimeout(() => {
-      const updated = {
-        ...user,
-        name: form.name,
-        username: form.username,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
-        ...(form.password ? { password: form.password } : {}),
-      };
-      setUser(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
-
-      console.log('✅ Profile updated:', updated);
-      setSaving(false);
-      setEditing(false);
-      setFeedback({ type: 'success', text: 'Profile updated successfully' });
-      setTimeout(() => setFeedback(null), 3000);
-    }, 800);
-  };
-
-  const handleCancel = () => {
-    setEditing(false);
-    setShowPassword(false);
-    setForm({
-      name: user.name || '',
-      username: user.username || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      address: user.address || '',
-      password: '',
-    });
-  };
+  if (!user) return null;
 
   const handleLogout = () => {
-    console.log('👋 Logging out…');
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    navigate('/login');
+    logout();
+    navigate('/');
   };
-
-  /* ---------- Loading guard ---------- */
-  if (!user) return null;
 
   const initials = (user.name || 'U')
     .split(' ')
@@ -151,311 +68,269 @@ const Profile = () => {
     .join('')
     .toUpperCase();
 
-  /* ---------- Render ---------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-rose-50 py-8 sm:py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="mb-8"
-        >
-          <motion.div variants={fadeInUp}>
-            <Link
-              to="/"
-              className="group inline-flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors duration-300 ease-in mb-3"
-            >
-              ← Back to home
-            </Link>
-          </motion.div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-rose-50/40">
+      {/* ---------- Hero header ---------- */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-500">
+        <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
 
-          <motion.h1
-            variants={fadeInUp}
-            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 flex items-center gap-3"
-          >
-            <FaUser className="w-6 h-6 text-indigo-600" />
-            My Profile
-          </motion.h1>
-        </motion.div>
-
-        {/* Feedback banner */}
-        {feedback && (
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
+            transition={{ duration: 0.25 }}
           >
-            <FaCheckCircle className="w-4 h-4" />
-            {feedback.text}
+            <Link
+              to="/"
+              className="group inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors duration-200 ease-in"
+            >
+              <span className="transition-transform duration-200 group-hover:-translate-x-1">←</span>
+              Back to home
+            </Link>
           </motion.div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* ---------- Left: Avatar card ---------- */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+            className="mt-6 flex flex-col sm:flex-row items-center sm:items-end gap-5 text-white"
+          >
+            <div className="relative">
+              <motion.div
+                whileHover={{ scale: 1.04 }}
+                transition={{ duration: 0.2, ease: 'easeIn' }}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/15 backdrop-blur border-2 border-white/30 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold shadow-2xl shadow-indigo-900/30"
+              >
+                {initials}
+              </motion.div>
+              <button
+                type="button"
+                aria-label="Change avatar"
+                className="absolute -bottom-1 -right-1 z-100 w-9 h-9 rounded-xl bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center shadow-lg transition-all duration-200 ease-in cursor-pointer hover:scale-110 active:scale-95"
+              >
+                <FaCamera className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex-1 text-center sm:text-left pb-1">
+              <div className="flex items-center gap-2 justify-center sm:justify-start mb-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+                  {user.name}
+                </h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  <FaCrown className="w-2.5 h-2.5" />
+                  Member
+                </span>
+              </div>
+              <p className="text-sm text-white/80">@{user.username || 'user'}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-xs font-medium">
+                  <FaEnvelope className="w-3 h-3 opacity-80" />
+                  {user.email}
+                </span>
+                {user.memberSince && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-xs font-medium">
+                    <FaCalendarAlt className="w-3 h-3 opacity-80" />
+                    Since {user.memberSince}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.28)' }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ duration: 0.2, ease: 'easeIn' }}
+              onClick={handleLogout}
+              className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-white/15 backdrop-blur border border-white/25 text-white px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer"
+            >
+              <FaSignOutAlt className="w-3.5 h-3.5" />
+              Sign out
+            </motion.button>
+          </motion.div>
+        </div>
+
+        <div className="relative">
+          <svg
+            className="block w-full h-8 sm:h-12 text-slate-50"
+            viewBox="0 0 1440 60"
+            preserveAspectRatio="none"
+            fill="currentColor"
+          >
+            <path d="M0,32 C240,60 480,0 720,20 C960,40 1200,60 1440,32 L1440,60 L0,60 Z" />
+          </svg>
+        </div>
+      </div>
+
+      {/* ---------- Main content ---------- */}
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 -mt-4 sm:-mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* ---------- Left column ---------- */}
           <motion.aside
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
             className="lg:col-span-4 space-y-5"
           >
-            {/* Avatar + name */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
-              <div className="relative inline-block mb-4">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.3, ease: 'easeIn' }}
-                  className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white flex items-center justify-center text-3xl font-bold shadow-lg shadow-indigo-500/30 cursor-pointer"
-                >
-                  {initials}
-                </motion.div>
-                <button
-                  type="button"
-                  aria-label="Change avatar"
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-sm transition-colors duration-300 ease-in cursor-pointer"
-                >
-                  <FaCamera className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <h2 className="text-lg font-bold text-gray-900">{user.name}</h2>
-              <p className="text-sm text-gray-500">@{user.username || 'user'}</p>
-              <p className="text-xs text-gray-400 mt-1">{user.email}</p>
-
-              {user.memberSince && (
-                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-semibold text-indigo-700">
-                  <FaShieldAlt className="w-3 h-3" />
-                  Member since {user.memberSince}
-                </p>
-              )}
-            </div>
-
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: FaShoppingBag, label: 'Orders', value: demoOrders.length },
-                { icon: FaHeart, label: 'Wishlist', value: 8 },
-                { icon: FaTruck, label: 'In Transit', value: 1 },
-              ].map(({ icon: Icon, label, value }) => (
+                { icon: FaShoppingBag, label: 'Orders', value: demoOrders.length, color: 'indigo' },
+                { icon: FaHeart, label: 'Wishlist', value: 8, color: 'rose' },
+                { icon: FaTruck, label: 'In Transit', value: 1, color: 'amber' },
+              ].map(({ icon: Icon, label, value, color }) => (
                 <motion.div
                   key={label}
-                  whileHover={{ y: -3 }}
-                  transition={{ duration: 0.3, ease: 'easeIn' }}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all"
+                  whileHover={{ y: -4, scale: 1.03 }}
+                  transition={{ duration: 0.2, ease: 'easeIn' }}
+                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:shadow-indigo-100 p-4 text-center cursor-pointer transition-all duration-200"
                 >
-                  <Icon className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                  <p className="text-lg font-bold text-gray-900">{value}</p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</p>
+                  <div
+                    className={`w-9 h-9 mx-auto mb-2 rounded-xl flex items-center justify-center ${
+                      color === 'indigo'
+                        ? 'bg-indigo-50 text-indigo-600'
+                        : color === 'rose'
+                        ? 'bg-rose-50 text-rose-600'
+                        : 'bg-amber-50 text-amber-600'
+                    } transition-transform duration-200 group-hover:scale-110`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">{value}</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5">
+                    {label}
+                  </p>
                 </motion.div>
               ))}
             </div>
 
             {/* Quick links */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              {[
-                { icon: FaBox, label: 'My Orders', to: '/orders' },
-                { icon: FaHeart, label: 'Wishlist', to: '/wishlist' },
-                { icon: FaMapMarkerAlt, label: 'Addresses', to: '/addresses' },
-                { icon: FaLock, label: 'Change Password', to: '/change-password' },
-              ].map(({ icon: Icon, label, to }) => (
-                <Link
-                  key={label}
-                  to={to}
-                  className="group flex items-center gap-3 px-4 py-3 text-sm text-gray-700 border-b border-gray-50 last:border-b-0 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-300 ease-in"
-                >
-                  <Icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-600 transition-colors duration-300" />
-                  <span className="flex-1">{label}</span>
-                  <span className="text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-300">
-                    →
-                  </span>
-                </Link>
-              ))}
+              <div className="px-5 pt-5 pb-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                  Quick links
+                </h3>
+              </div>
+              <div className="px-2 pb-2">
+                {[
+                  { icon: FaBox, label: 'My Orders', to: '/orders', desc: 'Track purchases' },
+                  { icon: FaHeart, label: 'Wishlist', to: '/wishlist', desc: 'Saved items' },
+                  { icon: FaMapMarkerAlt, label: 'Addresses', to: '/addresses', desc: 'Delivery info' },
+                  { icon: FaLock, label: 'Settings', to: '/settings', desc: 'Preferences & security' },
+                ].map(({ icon: Icon, label, to, desc }) => (
+                  <Link
+                    key={label}
+                    to={to}
+                    className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-indigo-50 hover:translate-x-1 transition-all duration-200 ease-in"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-gray-50 text-gray-500 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors duration-200 group-hover:scale-110">
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors duration-200">
+                        {label}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{desc}</p>
+                    </div>
+                    <FaChevronRight className="w-3 h-3 text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all duration-200" />
+                  </Link>
+                ))}
+              </div>
             </div>
 
-            {/* Logout */}
+            {/* Sign out (mobile) */}
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, backgroundColor: '#ffe4e6' }}
               whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.3, ease: 'easeIn' }}
+              transition={{ duration: 0.2, ease: 'easeIn' }}
               onClick={handleLogout}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 py-3 text-sm font-semibold transition-colors duration-300 ease-in cursor-pointer"
+              className="sm:hidden w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 hover:text-rose-700 py-3.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer"
             >
               <FaSignOutAlt className="w-3.5 h-3.5" />
               Sign out
             </motion.button>
           </motion.aside>
 
-          {/* ---------- Right: Details + Orders ---------- */}
+          {/* ---------- Right column ---------- */}
           <motion.div
             initial="hidden"
             animate="visible"
             variants={stagger}
             className="lg:col-span-8 space-y-6"
           >
-            {/* Profile details */}
+            {/* ---------- Account details (read-only) ---------- */}
             <motion.section
               variants={fadeInUp}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-gray-900">Account details</h2>
-
-                {!editing ? (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.3, ease: 'easeIn' }}
-                    onClick={() => setEditing(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors duration-300 ease-in cursor-pointer"
-                  >
-                    <FaEdit className="w-3 h-3" />
-                    Edit
-                  </motion.button>
-                ) : (
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ duration: 0.3, ease: 'easeIn' }}
-                      onClick={handleCancel}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 px-3 py-1.5 text-xs font-semibold transition-colors duration-300 ease-in cursor-pointer"
-                    >
-                      <FaTimes className="w-3 h-3" />
-                      Cancel
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ duration: 0.3, ease: 'easeIn' }}
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors duration-300 ease-in cursor-pointer disabled:opacity-70"
-                    >
-                      {saving ? (
-                        <>
-                          <span className="w-3 h-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                          Saving…
-                        </>
-                      ) : (
-                        <>
-                          <FaSave className="w-3 h-3" />
-                          Save
-                        </>
-                      )}
-                    </motion.button>
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <FaUser className="w-4 h-4" />
                   </div>
-                )}
+                  <div>
+                    <h2 className="text-base font-bold text-gray-900">Account details</h2>
+                    <p className="text-xs text-gray-500">Your personal information</p>
+                  </div>
+                </div>
+
+                {/* ✅ Single Edit button → navigates to /edit-profile */}
+                <motion.div
+                  whileHover={{
+                    scale: 1.06,
+                    y: -2,
+                    boxShadow: '0 10px 25px -5px rgba(79, 70, 229, 0.4)',
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: 'easeIn' }}
+                >
+                  <Link
+                    to="/edit-profile"
+                    className="group relative inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 text-xs font-semibold shadow-sm transition-colors duration-200 ease-in cursor-pointer"
+                  >
+                    <FaEdit className="w-3 h-3 transition-transform duration-200 group-hover:rotate-12" />
+                    Edit profile
+                    <span className="absolute inset-0 rounded-lg ring-2 ring-indigo-300/0 group-hover:ring-indigo-300/50 transition-all duration-200" />
+                  </Link>
+                </motion.div>
               </div>
 
-              {!editing ? (
-                /* ---------- Read-only view ---------- */
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+              <div className="p-5 sm:p-6">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                   <Field icon={FaUser} label="Full name" value={user.name} />
                   <Field icon={FaUser} label="Username" value={user.username ? `@${user.username}` : '—'} />
                   <Field icon={FaEnvelope} label="Email" value={user.email} />
                   <Field icon={FaPhoneAlt} label="Phone" value={user.phone || '—'} />
                   <Field icon={FaLock} label="Password" value="••••••••" />
                   <div className="sm:col-span-2">
-                    <Field
-                      icon={FaMapMarkerAlt}
-                      label="Address"
-                      value={user.address || '—'}
-                    />
+                    <Field icon={FaMapMarkerAlt} label="Address" value={user.address || '—'} />
                   </div>
                 </dl>
-              ) : (
-                /* ---------- Edit form ---------- */
-                <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <EditInput
-                    icon={FaUser}
-                    name="name"
-                    label="Full name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Jane Doe"
-                  />
-                  <EditInput
-                    icon={FaUser}
-                    name="username"
-                    label="Username"
-                    value={form.username}
-                    onChange={handleChange}
-                    placeholder="janedoe"
-                  />
-                  <EditInput
-                    icon={FaEnvelope}
-                    name="email"
-                    label="Email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="you@example.com"
-                  />
-                  <EditInput
-                    icon={FaPhoneAlt}
-                    name="phone"
-                    label="Phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="+91 90263 50956"
-                  />
-
-                  <div className="sm:col-span-2">
-                    <EditInput
-                      icon={FaMapMarkerAlt}
-                      name="address"
-                      label="Address"
-                      value={form.address}
-                      onChange={handleChange}
-                      placeholder="Vill. Rukmalpur Post Meerpur, Atrauliya-Azamgarh, UP 223223"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                      New password <span className="text-gray-400">(leave blank to keep current)</span>
-                    </label>
-                    <div className="relative group">
-                      <FaLock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 transition-colors duration-300 ease-in group-focus-within:text-indigo-600" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        placeholder="••••••••"
-                        className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-11 text-sm text-gray-900 placeholder-gray-400 transition-all duration-300 ease-in focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((s) => !s)}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors duration-300 ease-in cursor-pointer"
-                      >
-                        {showPassword ? <FaEyeSlash className="w-3.5 h-3.5" /> : <FaEye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              )}
+              </div>
             </motion.section>
 
-            {/* Recent orders */}
+            {/* ---------- Recent orders ---------- */}
             <motion.section
               variants={fadeInUp}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <FaBox className="w-4 h-4 text-indigo-600" />
-                  Recent orders
-                </h2>
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <FaBox className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-gray-900">Recent orders</h2>
+                    <p className="text-xs text-gray-500">Your latest purchases</p>
+                  </div>
+                </div>
                 <Link
                   to="/orders"
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors duration-300 ease-in"
+                  className="group inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:gap-2 transition-all duration-200 ease-in"
                 >
-                  View all →
+                  View all
+                  <FaChevronRight className="w-2.5 h-2.5 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
               </div>
 
@@ -464,14 +339,14 @@ const Profile = () => {
                   <li key={order.id}>
                     <Link
                       to={`/orders/${order.id}`}
-                      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3.5 hover:bg-gray-50 -mx-3 px-3 rounded-lg transition-colors duration-300 ease-in"
+                      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 hover:bg-gradient-to-r hover:from-indigo-50/70 hover:to-transparent transition-all duration-200 ease-in"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:bg-indigo-100 transition-colors duration-300">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-200">
                           <FaBox className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
+                          <p className="text-sm font-bold text-gray-900 truncate group-hover:text-indigo-700 transition-colors duration-200">
                             #{order.id}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -482,20 +357,17 @@ const Profile = () => {
 
                       <div className="flex items-center gap-3 sm:gap-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                            order.status === 'Delivered'
-                              ? 'bg-green-50 text-green-700'
-                              : order.status === 'Shipped'
-                              ? 'bg-indigo-50 text-indigo-700'
-                              : 'bg-amber-50 text-amber-700'
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 group-hover:ring-2 transition-all duration-200 ${
+                            statusStyles[order.status] || statusStyles.Processing
                           }`}
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                           {order.status}
                         </span>
-                        <span className="text-sm font-bold text-gray-900">
+                        <span className="text-sm font-bold text-gray-900 group-hover:text-indigo-700 transition-colors duration-200">
                           ₹{order.total.toLocaleString('en-IN')}
                         </span>
+                        <FaChevronRight className="w-3 h-3 text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all duration-200" />
                       </div>
                     </Link>
                   </li>
@@ -509,35 +381,16 @@ const Profile = () => {
   );
 };
 
-/* ---------- Small helper: read-only field ---------- */
+/* ---------- Read-only field ---------- */
 const Field = ({ icon: Icon, label, value }) => (
-  <div>
-    <dt className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
-      <Icon className="w-3 h-3 text-gray-400" />
+  <div className="group/field">
+    <dt className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+      <Icon className="w-3 h-3 text-gray-400 transition-colors duration-200 group-hover/field:text-indigo-600" />
       {label}
     </dt>
-    <dd className="text-sm font-medium text-gray-900 break-words">{value}</dd>
-  </div>
-);
-
-/* ---------- Small helper: edit input ---------- */
-const EditInput = ({ icon: Icon, name, label, value, onChange, type = 'text', placeholder }) => (
-  <div>
-    <label htmlFor={name} className="block text-xs font-medium text-gray-700 mb-1.5">
-      {label}
-    </label>
-    <div className="relative group">
-      <Icon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 transition-colors duration-300 ease-in group-focus-within:text-indigo-600" />
-      <input
-        id={name}
-        name={name}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 transition-all duration-300 ease-in focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-      />
-    </div>
+    <dd className="text-sm font-medium text-gray-900 break-words leading-relaxed">
+      {value}
+    </dd>
   </div>
 );
 
