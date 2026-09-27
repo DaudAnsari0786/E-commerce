@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Founder from "/public/founder.png"
 import {
   FaHeart,
   FaLeaf,
@@ -74,33 +75,28 @@ const themeStyles = {
 
 const timeline = [
   {
-    year: '2018',
+    year: '2020',
     title: 'A small idea',
     desc: 'StyleCraft started in a Delhi apartment with 12 hand-stitched jackets and a big dream.',
   },
   {
-    year: '2020',
+    year: '2022',
     title: 'Going online',
     desc: 'We launched our first online store and shipped to 8 cities within the first month.',
   },
   {
-    year: '2022',
+    year: '2024',
     title: 'Sustainable shift',
     desc: 'We switched to 100% organic cotton and recycled packaging across every product line.',
   },
   {
-    year: '2024',
+    year: '2026',
     title: '50K community',
     desc: 'Half a million orders later, we hit 50,000 happy customers and opened a flagship studio.',
   },
 ];
 
-const team = [
-  { name: 'Ayesha Khan', role: 'Founder & Creative Director', initials: 'AK', color: 'from-indigo-500 to-purple-600' },
-  { name: 'Rahul Verma', role: 'Head of Design', initials: 'RV', color: 'from-emerald-500 to-teal-600' },
-  { name: 'Priya Sharma', role: 'Sustainability Lead', initials: 'PS', color: 'from-rose-500 to-pink-600' },
-  { name: 'Imran Ali', role: 'Head of Operations', initials: 'IA', color: 'from-amber-500 to-orange-600' },
-];
+
 
 const promises = [
   { icon: FaTruck, label: 'Free shipping', desc: 'On orders over ₹1500' },
@@ -153,7 +149,7 @@ const About = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.15 }}
-            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3"
+            className="mt-8 flex flex-nowrap items-center justify-center gap-3"
           >
             <Link
               to="/products"
@@ -219,23 +215,45 @@ const About = () => {
           className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16 items-center"
         >
           <motion.div variants={fadeInUp} className="relative">
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-100 via-purple-100 to-rose-100 aspect-[4/5] flex items-center justify-center p-8">
-              <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/60 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-white/60 blur-3xl" />
+  {/* Background image — behind everything, soft & blurred */}
+  <div className="absolute inset-0 rounded-3xl overflow-hidden">
+    <img
+      src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1200&q=90"
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      className="w-full h-full object-cover scale-110 blur-sm"
+    />
+    {/* Soft tint so background stays subtle */}
+    <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/80 via-purple-100/70 to-rose-100/80" />
+  </div>
 
-              <div className="relative text-center">
-                <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-lg mb-4">
-                  <FaQuoteLeft className="w-6 h-6" />
-                </div>
-                <p className="text-lg sm:text-xl font-bold text-gray-900 leading-snug">
-                  "We design clothes for the person you're becoming — not the
-                  person you used to be."
-                </p>
-                <p className="mt-4 text-sm text-gray-600">— Ayesha Khan, Founder</p>
-              </div>
-            </div>
-          </motion.div>
+  {/* Founder image card — clear & sharp */}
+  <div className="relative rounded-3xl overflow-hidden aspect-[4/5] flex items-end justify-center">
+    <img
+      src={Founder}
+      alt="Abu Bakar Ansari, Founder of StyleCraft"
+      loading="lazy"
+      className="absolute inset-0 w-full h-full object-cover object-top"
+    />
 
+    {/* Light gradient at bottom only, so the quote card is readable */}
+    <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+    {/* Quote card over founder image */}
+    <div className="relative w-full p-6 text-center">
+      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/95 backdrop-blur text-indigo-600 shadow-lg mb-3">
+        <FaQuoteLeft className="w-5 h-5" />
+      </div>
+      <p className="text-base sm:text-lg font-bold text-white leading-snug drop-shadow-md">
+        "We design clothes for the person you're becoming — not the person you used to be."
+      </p>
+      <p className="mt-3 text-l font-bold text-blue-700/50 ">
+        — Abu Bakar Ansari, Founder
+      </p>
+    </div>
+  </div>
+</motion.div>
           <motion.div variants={fadeInUp}>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
               Our mission
@@ -303,7 +321,7 @@ const About = () => {
                   className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl p-6 transition-all duration-200"
                 >
                   <div
-                    className={`w-12 h-12 rounded-xl ${t.tile} text-white flex items-center justify-center shadow-md mb-4 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3`}
+                    className={`w-12 h-12 rounded-xl ${t.tile} text-white flex items-center justify-center shadow-md mb-4 transition-transform duration-200 group-hover:scale-110 `}
                   >
                     <Icon className="w-5 h-5" />
                   </div>
@@ -369,7 +387,7 @@ const About = () => {
                       i % 2 === 0 ? 'sm:pr-12 sm:text-right' : 'sm:pl-12 sm:text-left'
                     }`}
                   >
-                    <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-200 p-5">
+                    <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg  transition-all duration-200 p-5">
                       <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-2.5 py-0.5 text-[10px] font-bold tracking-wider shadow-sm">
                         {item.year}
                       </span>
@@ -390,62 +408,7 @@ const About = () => {
           </div>
         </motion.section>
 
-        {/* ---------- Team ---------- */}
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          variants={stagger}
-          className="mb-16"
-        >
-          <motion.div variants={fadeInUp} className="text-center mb-10">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
-              <FaUsers className="w-3 h-3" />
-              The team
-            </span>
-            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-gray-900">
-              The people behind StyleCraft
-            </h2>
-            <p className="mt-2 text-sm text-gray-500 max-w-2xl mx-auto">
-              A small, focused team that cares deeply about the details.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {team.map(({ name, role, initials, color }) => (
-              <motion.div
-                key={name}
-                variants={fadeInUp}
-                whileHover={{ y: -6 }}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl p-5 text-center transition-all duration-200"
-              >
-                <div className="relative inline-block mb-3">
-                  <div
-                    className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${color} text-white flex items-center justify-center text-2xl font-bold shadow-md transition-transform duration-200 group-hover:scale-105 group-hover:rotate-3`}
-                  >
-                    {initials}
-                  </div>
-                  <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-400 ring-2 ring-white" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900">{name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{role}</p>
-
-                {/* Social reveal on hover */}
-                <div className="mt-3 flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  {[FaInstagram, FaTwitter, FaLinkedinIn].map((Icon, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-gray-50 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-colors cursor-pointer"
-                    >
-                      <Icon className="w-2.5 h-2.5" />
-                    </span>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
+    
         {/* ---------- CTA ---------- */}
         <motion.section
           initial="hidden"
@@ -471,7 +434,7 @@ const About = () => {
                 Explore the collection and discover pieces made with care,
                 designed to last, and priced fairly.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex flex-nowrap items-center justify-center gap-3">
                 <Link
                   to="/products"
                   className="group inline-flex items-center gap-2 rounded-xl bg-white text-indigo-700 px-6 py-3 text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"

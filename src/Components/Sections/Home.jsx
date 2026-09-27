@@ -321,14 +321,11 @@ const Home = () => {
       </motion.div>
 
 
-<div className="">
-  <Profile/>
-</div>
+
 
 <div className="">
-  {/* <Testimonial/> */}
+  <Testimonial/>
 </div>
-      {/* Marquee keyframes */}
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }

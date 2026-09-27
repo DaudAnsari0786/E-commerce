@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,10 +19,12 @@ import KidsProducts from './Components/CATEGORIES/KidsProducts';
 import GirlsProducts from './Components/CATEGORIES/GirlsProducts';
 import AllproductNav from './Components/FEATURES/AllproductNav';
 import Profile from './Components/Forms/Profile';
-import EditProfile from './Components/Forms/EditProfile';   // ✅ import the real EditProfile
+import EditProfile from './Components/Forms/EditProfile';
 import Settings from './Components/Forms/Settings';
 import Address from './Components/Forms/Address';
 import Orders from './Components/Forms/Orders';
+import Login from './Components/Forms/Login';       // ✅ added
+import Signup from './Components/Forms/Signup';     // ✅ added
 import { useUser } from './context/UserContext';
 import FAQ from './FooterLinks/FAQ';
 
@@ -57,7 +59,14 @@ const MainLayout = ({ children }) => (
 /* ---------- Route guard ---------- */
 const RequireLogin = ({ children }) => {
   const { user } = useUser();
-  return user ? children : <Navigate to="/" replace />;
+  // ✅ Redirect guests to /login (not "/")
+  return user ? children : <Navigate to="/login" replace />;
+};
+
+/* ---------- Redirect logged-in users away from /login & /signup ---------- */
+const RedirectIfLoggedIn = ({ children }) => {
+  const { user } = useUser();
+  return user ? <Navigate to="/profile" replace /> : children;
 };
 
 /* ---------- Placeholder ---------- */
@@ -114,7 +123,7 @@ const NotFound = () => (
 /* ---------- Scroll to top on route change ---------- */
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname]);
   return null;
@@ -144,6 +153,18 @@ const placeholderRoutes = [
 const App = () => {
   const location = useLocation();
 
+  // ✅ Apply saved dark-mode preference on first load
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('stylecraft:settings');
+      const prefs = raw ? JSON.parse(raw) : {};
+      if (prefs.darkMode) document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    } catch {
+      /* ignore corrupt storage */
+    }
+  }, []);
+
   return (
     <>
       <ScrollToTop />
@@ -154,7 +175,25 @@ const App = () => {
             element={
               <MainLayout>
                 <Routes>
-                  {/* CORE */}
+                  {/* ---------- AUTH (public, fullscreen, no Navbar/Footer) ---------- */}
+                  <Route
+                    path="/login"
+                    element={
+                      <RedirectIfLoggedIn>
+                        <Login />
+                      </RedirectIfLoggedIn>
+                    }
+                  />
+                  <Route
+                    path="/signup"
+                    element={
+                      <RedirectIfLoggedIn>
+                        <Signup />
+                      </RedirectIfLoggedIn>
+                    }
+                  />
+
+                  {/* ---------- CORE ---------- */}
                   <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
                   <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
                   <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
@@ -163,7 +202,7 @@ const App = () => {
                   {/* Footer Links */}
                   <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
 
-                  {/* PRODUCTS (nested layout) */}
+                  {/* ---------- PRODUCTS (nested layout) ---------- */}
                   <Route path="/products" element={<AllproductNav />}>
                     <Route index element={<Products />} />
                     <Route path="mens" element={<MensProducts />} />
@@ -174,10 +213,7 @@ const App = () => {
                     <Route path="sale" element={<Sale />} />
                   </Route>
 
-
-                  {/* ✅ PROTECTED — only logged-in users can access */}
-
-                  {/* Profile — READ-ONLY view of the user's details */}
+                  {/* ---------- PROTECTED ---------- */}
                   <Route
                     path="/profile"
                     element={
@@ -186,8 +222,6 @@ const App = () => {
                       </RequireLogin>
                     }
                   />
-
-                  {/* Edit Profile — the edit form */}
                   <Route
                     path="/edit-profile"
                     element={
@@ -196,7 +230,6 @@ const App = () => {
                       </RequireLogin>
                     }
                   />
-
                   <Route
                     path="/settings"
                     element={
@@ -238,7 +271,7 @@ const App = () => {
                     }
                   />
 
-                  {/* PLACEHOLDER ROUTES */}
+                  {/* ---------- PLACEHOLDER ROUTES ---------- */}
                   {placeholderRoutes.map(({ path, title, description }) => (
                     <Route
                       key={path}
@@ -247,7 +280,7 @@ const App = () => {
                     />
                   ))}
 
-                  {/* 404 */}
+                  {/* ---------- 404 ---------- */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </MainLayout>

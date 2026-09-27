@@ -12,13 +12,12 @@ import {
   FaArrowRight,
   FaCheckCircle,
 } from 'react-icons/fa';
+import { useUser } from '../../context/UserContext';
 
-/* ---------- Animation variants ---------- */
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
-
 const stagger = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
@@ -26,6 +25,8 @@ const stagger = {
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useUser();
+
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,9 +36,7 @@ const Login = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
-    }
+    if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' });
   };
 
   const validate = () => {
@@ -53,55 +52,62 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
+
     setLoading(true);
-    // Simulate API call — replace with your real auth endpoint
+
     setTimeout(() => {
+      const handle = form.email.split('@')[0];
+      const pretty = handle
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      // ✅ Send real data (including password) → context
+      login({
+        name: pretty || 'User',
+        username: handle,
+        email: form.email,
+        phone: '',
+        address: '',
+        avatar: null,
+        password: form.password, // ✅ store password for demo
+        memberSince: new Date().getFullYear().toString(),
+      });
+
+      console.log('🔐 Login submitted:', {
+        email: form.email,
+        // ⚠️ In production, never log passwords!
+      });
+
       setLoading(false);
       setSuccess(true);
-      setTimeout(() => navigate('/'), 1200);
+      setTimeout(() => navigate('/profile'), 1200);
     }, 1200);
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50 ">
-      {/* ---------- Left: Brand / illustration panel ---------- */}
-      <div className="hidden  lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-500">
-        {/* Decorative blurred blobs */}
+    <div className="min-h-screen flex bg-gray-50">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-500">
         <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute top-1/3 right-1/4 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
 
         <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <span className="rounded bg-white/20 backdrop-blur px-3 py-1 text-xl font-bold">
-              A
-            </span>
+            <span className="rounded bg-white/20 backdrop-blur px-3 py-1 text-xl font-bold">A</span>
             <span className="text-lg font-semibold tracking-tighter">
               <span className="font-bold text-white">Style</span>
               <span className="text-white/90">Craft</span>
             </span>
           </Link>
 
-          {/* Headline */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-            className="max-w-md"
-          >
-            <motion.h1
-              variants={fadeInUp}
-              className="text-4xl xl:text-5xl font-bold leading-tight mb-4"
-            >
+          <motion.div initial="hidden" animate="visible" variants={stagger} className="max-w-md">
+            <motion.h1 variants={fadeInUp} className="text-4xl xl:text-5xl font-bold leading-tight mb-4">
               Welcome back to timeless fashion.
             </motion.h1>
-            <motion.p
-              variants={fadeInUp}
-              className="text-base text-white/80 leading-relaxed"
-            >
-              Sign in to access your wishlist, track orders, and unlock member-only
-              drops before anyone else.
+            <motion.p variants={fadeInUp} className="text-base text-white/80 leading-relaxed">
+              Sign in to access your wishlist, track orders, and unlock member-only drops
+              before anyone else.
             </motion.p>
 
             <motion.ul variants={stagger} className="mt-8 space-y-3">
@@ -110,11 +116,7 @@ const Login = () => {
                 'Free shipping on every order',
                 'Exclusive member discounts',
               ].map((item) => (
-                <motion.li
-                  key={item}
-                  variants={fadeInUp}
-                  className="flex items-center gap-3 text-sm text-white/90"
-                >
+                <motion.li key={item} variants={fadeInUp} className="flex items-center gap-3 text-sm text-white/90">
                   <FaCheckCircle className="h-4 w-4 text-white/80 shrink-0" />
                   {item}
                 </motion.li>
@@ -122,7 +124,6 @@ const Login = () => {
             </motion.ul>
           </motion.div>
 
-          {/* Bottom testimonial */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -138,47 +139,31 @@ const Login = () => {
         </div>
       </div>
 
-      {/* ---------- Right: Login form ---------- */}
+      {/* Right form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="w-full max-w-md"
-        >
-          {/* Mobile logo */}
+        <motion.div initial="hidden" animate="visible" variants={stagger} className="w-full max-w-md">
           <Link to="/" className="lg:hidden mb-8 flex items-center gap-2">
-            <span className="rounded bg-indigo-600 px-3 py-1 text-xl font-bold text-white">
-              A
-            </span>
+            <span className="rounded bg-indigo-600 px-3 py-1 text-xl font-bold text-white">A</span>
             <span className="text-lg font-semibold tracking-tighter">
               <span className="font-bold text-indigo-600">Style</span>
               <span className="text-gray-900">Craft</span>
             </span>
           </Link>
 
-          {/* Heading */}
           <motion.div variants={fadeInUp} className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign in</h2>
             <p className="text-sm text-gray-500">
               Don't have an account?{' '}
-              <Link
-                to="/signup"
-                className="font-semibold text-indigo-600 transition-colors duration-300 ease-in hover:text-indigo-800"
-              >
+              <Link to="/signup" className="font-semibold text-indigo-600 transition-colors duration-300 ease-in hover:text-indigo-800">
                 Create one
               </Link>
             </p>
           </motion.div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email */}
             <motion.div variants={fadeInUp}>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Email address
               </label>
               <div className="relative group">
@@ -198,9 +183,7 @@ const Login = () => {
                   }`}
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1.5 text-xs font-medium text-red-500">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.email}</p>}
             </motion.div>
 
             {/* Password */}
@@ -209,10 +192,7 @@ const Login = () => {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-semibold text-indigo-600 transition-colors duration-300 ease-in hover:text-indigo-800"
-                >
+                <Link to="/forgot-password" className="text-xs font-semibold text-indigo-600 transition-colors duration-300 ease-in hover:text-indigo-800">
                   Forgot password?
                 </Link>
               </div>
@@ -238,19 +218,12 @@ const Login = () => {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors duration-300 ease-in hover:text-indigo-600 cursor-pointer"
                 >
-                  {showPassword ? (
-                    <FaEyeSlash className="h-4 w-4" />
-                  ) : (
-                    <FaEye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1.5 text-xs font-medium text-red-500">{errors.password}</p>
-              )}
+              {errors.password && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.password}</p>}
             </motion.div>
 
-            {/* Remember me */}
             <motion.div variants={fadeInUp} className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -263,7 +236,6 @@ const Login = () => {
               </label>
             </motion.div>
 
-            {/* Submit */}
             <motion.button
               variants={fadeInUp}
               type="submit"
@@ -298,17 +270,12 @@ const Login = () => {
             </motion.button>
           </form>
 
-          {/* Divider */}
-          <motion.div
-            variants={fadeInUp}
-            className="my-6 flex items-center gap-3 text-xs text-gray-400"
-          >
+          <motion.div variants={fadeInUp} className="my-6 flex items-center gap-3 text-xs text-gray-400">
             <span className="h-px flex-1 bg-gray-200" />
             OR CONTINUE WITH
             <span className="h-px flex-1 bg-gray-200" />
           </motion.div>
 
-          {/* Social buttons */}
           <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-3">
             {[
               { icon: FaGoogle, label: 'Google', hover: 'hover:border-red-300 hover:text-red-500' },
@@ -329,23 +296,13 @@ const Login = () => {
             ))}
           </motion.div>
 
-          {/* Terms */}
-          <motion.p
-            variants={fadeInUp}
-            className="mt-8 text-center text-xs text-gray-400 leading-relaxed"
-          >
+          <motion.p variants={fadeInUp} className="mt-8 text-center text-xs text-gray-400 leading-relaxed">
             By signing in, you agree to our{' '}
-            <Link
-              to="/terms"
-              className="font-medium text-gray-500 underline underline-offset-2 transition-colors duration-300 ease-in hover:text-indigo-600"
-            >
+            <Link to="/terms" className="font-medium text-gray-500 underline underline-offset-2 transition-colors duration-300 ease-in hover:text-indigo-600">
               Terms
             </Link>{' '}
             and{' '}
-            <Link
-              to="/privacy"
-              className="font-medium text-gray-500 underline underline-offset-2 transition-colors duration-300 ease-in hover:text-indigo-600"
-            >
+            <Link to="/privacy" className="font-medium text-gray-500 underline underline-offset-2 transition-colors duration-300 ease-in hover:text-indigo-600">
               Privacy Policy
             </Link>
             .
