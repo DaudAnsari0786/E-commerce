@@ -295,7 +295,7 @@ const Home = () => {
                 className="w-full h-20 object-cover rounded-lg"
               />
               <p className="text-[10px] text-gray-500 mt-2">Just dropped</p>
-              <p className="text-xs font-semibold text-gray-900">Classic Tee — $29</p>
+              <p className="text-xs font-semibold text-gray-900">Classic Tee — ₹149</p>
             </motion.div>
           </motion.div>
         </div>

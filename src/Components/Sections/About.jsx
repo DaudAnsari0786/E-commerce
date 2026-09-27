@@ -277,7 +277,7 @@ const About = () => {
               {promises.map(({ icon: Icon, label, desc }) => (
                 <div
                   key={label}
-                  className="group bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+                  className="group cursor-pointer bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
                 >
                   <Icon className="w-4 h-4 text-indigo-600 mx-auto mb-1.5 transition-transform duration-200 group-hover:scale-110" />
                   <p className="text-xs font-bold text-gray-900">{label}</p>

@@ -71,7 +71,7 @@ const AllproductNav = () => {
     <div className="container mx-auto px-4 py-8">
       {/* Heading */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white-900">Products</h1>
+        <h1 className="text-3xl font-bold text-black">Products</h1>
         <p className="mt-1 text-sm text-gray-500">
           Browse our latest drops across every category.
         </p>
@@ -103,7 +103,7 @@ const AllproductNav = () => {
                           focus-visible:ring-blue-600 focus-visible:ring-offset-2
                           ${
                             active
-                              ? 'bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white shadow-sm'
+                              ? ' shadow-sm'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                           }`}
             >

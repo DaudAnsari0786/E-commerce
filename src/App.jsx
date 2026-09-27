@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link, Route, Routes, useLocation, Navigate } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Navbar from './Components/Navbar/Navbar';
@@ -23,8 +23,8 @@ import EditProfile from './Components/Forms/EditProfile';
 import Settings from './Components/Forms/Settings';
 import Address from './Components/Forms/Address';
 import Orders from './Components/Forms/Orders';
-import Login from './Components/Forms/Login';       // ✅ added
-import Signup from './Components/Forms/Signup';     // ✅ added
+import Login from './Components/Forms/Login';
+import Signup from './Components/Forms/Signup';
 import { useUser } from './context/UserContext';
 import FAQ from './FooterLinks/FAQ';
 
@@ -47,19 +47,27 @@ const PageWrapper = ({ children }) => (
   </motion.div>
 );
 
-/* ---------- Layout with Navbar + Footer ---------- */
-const MainLayout = ({ children }) => (
-  <div className="flex flex-col min-h-screen">
-    <Navbar />
-    <main className="flex-1">{children}</main>
-    <Footer />
-  </div>
-);
+/* ---------- Main Layout (Navbar & Footer stay mounted here) ---------- */
+const MainLayout = () => {
+  const location = useLocation();
+  
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-1">
+        {/* AnimatePresence only wraps the Outlet (the changing page content) */}
+        <AnimatePresence mode="wait">
+          <Outlet key={location.pathname} />
+        </AnimatePresence>
+      </main>
+      <Footer />
+    </div>
+  );
+};
 
 /* ---------- Route guard ---------- */
 const RequireLogin = ({ children }) => {
   const { user } = useUser();
-  // ✅ Redirect guests to /login (not "/")
   return user ? children : <Navigate to="/login" replace />;
 };
 
@@ -78,10 +86,7 @@ const Placeholder = ({ title, description }) => (
         <p className="text-gray-600 text-sm sm:text-base mb-6">
           {description || 'This page is under construction. Check back soon!'}
         </p>
-        <Link
-          to="/"
-          className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200"
-        >
+        <Link to="/" className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200">
           Back to Home
         </Link>
       </div>
@@ -94,24 +99,13 @@ const NotFound = () => (
   <PageWrapper>
     <section className="min-h-screen flex items-center justify-center bg-white px-4 py-10 font-serif">
       <div className="w-full max-w-3xl text-center">
-        <div
-          className="h-[400px] bg-center bg-no-repeat bg-contain"
-          style={{
-            backgroundImage:
-              'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)',
-          }}
-        >
+        <div className="h-[400px] bg-center bg-no-repeat bg-contain" style={{ backgroundImage: 'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)' }}>
           <h1 className="text-[80px] font-bold text-gray-800">404</h1>
         </div>
         <div className="-mt-12">
-          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-            Look like you're lost
-          </h3>
+          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Look like you're lost</h3>
           <p className="text-gray-600 mb-6">The page you are looking for is not available!</p>
-          <Link
-            to="/"
-            className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-          >
+          <Link to="/" className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
             Go to Home
           </Link>
         </div>
@@ -151,143 +145,64 @@ const placeholderRoutes = [
 
 /* ---------- App ---------- */
 const App = () => {
-  const location = useLocation();
-
-  // ✅ Apply saved dark-mode preference on first load
+  // Apply saved dark-mode preference on first load
   useEffect(() => {
     try {
       const raw = localStorage.getItem('stylecraft:settings');
       const prefs = raw ? JSON.parse(raw) : {};
       if (prefs.darkMode) document.documentElement.classList.add('dark');
       else document.documentElement.classList.remove('dark');
-    } catch {
-      /* ignore corrupt storage */
-    }
+    } catch { /* ignore corrupt storage */ }
   }, []);
 
   return (
     <>
       <ScrollToTop />
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route
-            path="/*"
-            element={
-              <MainLayout>
-                <Routes>
-                  {/* ---------- AUTH (public, fullscreen, no Navbar/Footer) ---------- */}
-                  <Route
-                    path="/login"
-                    element={
-                      <RedirectIfLoggedIn>
-                        <Login />
-                      </RedirectIfLoggedIn>
-                    }
-                  />
-                  <Route
-                    path="/signup"
-                    element={
-                      <RedirectIfLoggedIn>
-                        <Signup />
-                      </RedirectIfLoggedIn>
-                    }
-                  />
+      <Routes>
+        {/* ---------- AUTH (public, fullscreen, no Navbar/Footer) ---------- */}
+        <Route path="/login" element={<RedirectIfLoggedIn><Login /></RedirectIfLoggedIn>} />
+        <Route path="/signup" element={<RedirectIfLoggedIn><Signup /></RedirectIfLoggedIn>} />
 
-                  {/* ---------- CORE ---------- */}
-                  <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
-                  <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
-                  <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
-                  <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
+        {/* ---------- MAIN LAYOUT (Navbar & Footer persist here) ---------- */}
+        <Route element={<MainLayout />}>
+          {/* Core */}
+          <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+          <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+          <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
+          <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
+          
+          {/* Footer Links */}
+          <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
 
-                  {/* Footer Links */}
-                  <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
+          {/* Products (nested layout) */}
+          <Route path="/products" element={<AllproductNav />}>
+            <Route index element={<Products />} />
+            <Route path="mens" element={<MensProducts />} />
+            <Route path="womens" element={<WomensProducts />} />
+            <Route path="kids" element={<KidsProducts />} />
+            <Route path="girls" element={<GirlsProducts />} />
+            <Route path="arrivals" element={<Arrivals />} />
+            <Route path="sale" element={<Sale />} />
+          </Route>
 
-                  {/* ---------- PRODUCTS (nested layout) ---------- */}
-                  <Route path="/products" element={<AllproductNav />}>
-                    <Route index element={<Products />} />
-                    <Route path="mens" element={<MensProducts />} />
-                    <Route path="womens" element={<WomensProducts />} />
-                    <Route path="kids" element={<KidsProducts />} />
-                    <Route path="girls" element={<GirlsProducts />} />
-                    <Route path="arrivals" element={<Arrivals />} />
-                    <Route path="sale" element={<Sale />} />
-                  </Route>
+          {/* Protected */}
+          <Route path="/profile" element={<RequireLogin><PageWrapper><Profile /></PageWrapper></RequireLogin>} />
+          <Route path="/edit-profile" element={<RequireLogin><PageWrapper><EditProfile /></PageWrapper></RequireLogin>} />
+          <Route path="/settings" element={<RequireLogin><PageWrapper><Settings /></PageWrapper></RequireLogin>} />
+          <Route path="/addresses" element={<RequireLogin><PageWrapper><Address /></PageWrapper></RequireLogin>} />
+          <Route path="/orders" element={<RequireLogin><PageWrapper><Orders /></PageWrapper></RequireLogin>} />
+          <Route path="/wishlist" element={<RequireLogin><PageWrapper><WishList /></PageWrapper></RequireLogin>} />
+          <Route path="/cart" element={<RequireLogin><PageWrapper><Cart /></PageWrapper></RequireLogin>} />
 
-                  {/* ---------- PROTECTED ---------- */}
-                  <Route
-                    path="/profile"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><Profile /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
-                  <Route
-                    path="/edit-profile"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><EditProfile /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><Settings /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
-                  <Route
-                    path="/addresses"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><Address /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
-                  <Route
-                    path="/orders"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><Orders /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
-                  <Route
-                    path="/wishlist"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><WishList /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
-                  <Route
-                    path="/cart"
-                    element={
-                      <RequireLogin>
-                        <PageWrapper><Cart /></PageWrapper>
-                      </RequireLogin>
-                    }
-                  />
+          {/* Placeholder Routes */}
+          {placeholderRoutes.map(({ path, title, description }) => (
+            <Route key={path} path={path} element={<Placeholder title={title} description={description} />} />
+          ))}
 
-                  {/* ---------- PLACEHOLDER ROUTES ---------- */}
-                  {placeholderRoutes.map(({ path, title, description }) => (
-                    <Route
-                      key={path}
-                      path={path}
-                      element={<Placeholder title={title} description={description} />}
-                    />
-                  ))}
-
-                  {/* ---------- 404 ---------- */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </MainLayout>
-            }
-          />
-        </Routes>
-      </AnimatePresence>
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
     </>
   );
 };

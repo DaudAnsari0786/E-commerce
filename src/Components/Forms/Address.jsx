@@ -364,7 +364,7 @@ const Address = () => {
                 </h2>
                 {!editing && (
                   <button type="button" onClick={startAdd}
-                    className="group inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:gap-2 transition-all duration-200 ease-in cursor-pointer">
+                    className="group bg-blue-900/50 py-2 px-4 rounded block sm:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:gap-2 transition-all duration-200 ease-in cursor-pointer">
                     <FaPlus className="w-2.5 h-2.5" />
                     Add new
                   </button>

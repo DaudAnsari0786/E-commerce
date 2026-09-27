@@ -263,12 +263,17 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ✅ UPDATED: This effect now closes all dropdowns/menus when the route changes
   useEffect(() => {
-    closeMobileMenu();
+    // Close all menus on route change
+    setIsMobileOpen(false);
+    setIsMobileShopOpen(false);
+    setIsMobileAccountOpen(false);
     setIsShopOpen(false);
     setIsAccountOpen(false);
     setIsSearchOpen(false);
 
+    // Highlight the active account row based on URL
     const match = accountRoutes.find((r) => location.pathname.startsWith(r.path));
     setActiveAccountRow(match ? match.key : null);
   }, [location.pathname]);
