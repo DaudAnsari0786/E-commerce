@@ -1,4 +1,22 @@
 @import "tailwindcss";
+.scrollbar-hide {
+  -ms-overflow-style: none;   /* IE/Edge */
+  scrollbar-width: none;      /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;              /* Chrome/Safari/Opera */
+}
+
+/* ============================== Optional: Reduced Motion ============================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  html, * {
+    scroll-behavior: auto !important;
+  }
+}
 
 /* ============================== Base ============================== */
 html {
@@ -132,23 +150,19 @@ html {
     height: 16px;
   }
 }
-
-/* ============================== Optional: Scrollbar-Hide Utility ============================== */
-.scrollbar-hide {
-  -ms-overflow-style: none;   /* IE/Edge */
-  scrollbar-width: none;      /* Firefox */
+/* Global 1px focus ring */
+input:focus-visible,
+button:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 1px solid #2563eb;
+  outline-offset: 2px;
 }
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;              /* Chrome/Safari/Opera */
-}
 
-/* ============================== Optional: Reduced Motion ============================== */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-  }
-  html, * {
-    scroll-behavior: auto !important;
-  }
+/* Remove default browser focus outline */
+input:focus,
+button:focus,
+textarea:focus,
+select:focus {
+  outline: none;
 }

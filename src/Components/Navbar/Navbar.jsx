@@ -206,18 +206,14 @@ const useWishlistCount = () => {
       }
     };
 
-    // ✅ Listen for changes from OTHER tabs
     const handleStorage = (e) => {
       if (e.key === 'wishlist') update();
     };
-
-    // ✅ Listen for changes in the SAME tab (custom event)
     const handleCustom = () => update();
 
     window.addEventListener('storage', handleStorage);
     window.addEventListener('wishlist:updated', handleCustom);
 
-    // Initial read
     update();
 
     return () => {
@@ -235,7 +231,6 @@ const Navbar = ({ className = '', cartCount = 2 }) => {
   const navigate = useNavigate();
   const { user, logout } = useUser();
 
-  // ✅ Live wishlist count synced with localStorage
   const wishlistCount = useWishlistCount();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -310,7 +305,6 @@ const Navbar = ({ className = '', cartCount = 2 }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close all dropdowns/menus when the route changes
   useEffect(() => {
     setIsMobileOpen(false);
     setIsMobileShopOpen(false);
@@ -853,7 +847,7 @@ const Navbar = ({ className = '', cartCount = 2 }) => {
                 onChange={(e) => setDesktopSearch(e.target.value)}
                 onKeyDown={handleSearch}
                 placeholder="Search clothes..."
-                className="w-58 xl:w-94 bg-gray-100 text-gray-900 placeholder-gray-400 pl-9 pr-9 py-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                className="w-58 xl:w-94 bg-gray-100 text-gray-900 placeholder-gray-400 pl-9 pr-9 py-2 text-sm rounded-full border border-transparent focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:bg-white transition"
               />
               <AnimatePresence>
                 {desktopSearch.length > 0 && (
@@ -942,7 +936,6 @@ const Navbar = ({ className = '', cartCount = 2 }) => {
               {isSearchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
             </motion.button>
 
-            {/* ✅ Wishlist Icon (Mobile) with live badge */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/wishlist"
@@ -1036,7 +1029,7 @@ const Navbar = ({ className = '', cartCount = 2 }) => {
                   onChange={(e) => setMobileSearch(e.target.value)}
                   onKeyDown={handleSearch}
                   placeholder="Search clothes..."
-                  className="w-full bg-gray-50 text-gray-900 placeholder-gray-400 pl-9 pr-9 py-2.5 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                  className="w-full bg-gray-50 text-gray-900 placeholder-gray-400 pl-9 pr-9 py-2.5 text-sm rounded-full border border-transparent focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:bg-white transition"
                   autoFocus
                 />
                 <AnimatePresence>
