@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Star, Heart, ShoppingCart, Tag, Sparkles } from 'lucide-react';
 import products from '../../Product.js';
 
-// ==================== ANIMATION VARIANTS ====================
+/* ============================== Animation Variants ============================== */
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -18,8 +18,10 @@ const staggerContainer = {
   },
 };
 
-// ==================== PRODUCT CARD ====================
-const ProductCard = ({ product }) => {
+/* ============================== Product Card ============================== */
+const ProductCard = ({ product, wishlist, toggleWishlist }) => {
+  const isWishlisted = wishlist.some((item) => item.id === product.id);
+
   const discount = product.oldPrice
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : 0;
@@ -34,10 +36,11 @@ const ProductCard = ({ product }) => {
     >
       {/* Image */}
       <Link to={`/shop/${product.category}`} className="block relative overflow-hidden">
-        <div className="relative aspect-[4/4] overflow-hidden bg-gray-100">
+        <div className="relative aspect-[5/5] overflow-hidden bg-gray-100">
           <img
             src={product.image}
             alt={product.name}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out"
           />
 
@@ -52,16 +55,18 @@ const ProductCard = ({ product }) => {
           )}
 
           {/* Wishlist */}
-          <motion.button
-            onClick={(e) => e.preventDefault()}
-            aria-label="Add to wishlist"
-            whileHover={{ scale: 1.15, rotate: -8 }}
-            whileTap={{ scale: 0.85 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-white/90 backdrop-blur text-gray-700 hover:text-rose-500 hover:bg-white flex items-center justify-center shadow-sm hover:shadow-md transition-colors"
+          <button
+            type="button"
+            onClick={(e) => toggleWishlist(e, product)}
+            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            className={`absolute top-2.5 right-2.5 w-9 h-9 rounded-full backdrop-blur flex items-center justify-center shadow-md transition-all duration-300 ${
+              isWishlisted
+                ? 'bg-rose-500 text-white opacity-100 scale-110'
+                : 'bg-white/90 text-gray-500 hover:bg-rose-500 hover:text-white opacity-0 group-hover:opacity-100'
+            }`}
           >
-            <Heart className="w-4 h-4" />
-          </motion.button>
+            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          </button>
         </div>
       </Link>
 
@@ -84,7 +89,7 @@ const ProductCard = ({ product }) => {
 
         {/* Price */}
         <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-sm sm:text-base font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <span className="text-sm sm:text-base font-bold text-indigo-600">
             ₹{product.price.toLocaleString('en-IN')}
           </span>
           {product.oldPrice && (
@@ -94,16 +99,11 @@ const ProductCard = ({ product }) => {
           )}
         </div>
 
-        {/* CTA */}
+        {/* ✅ Buy Now Button — Simple CSS */}
         <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-          <Link
-            to="/cart"
-            className="group/btn relative inline-flex items-center justify-center gap-2 w-full rounded-lg font-semibold text-white py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 bg-[length:200%_100%] bg-left hover:bg-right hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-[0.97] overflow-hidden"
-          >
-            {/* Shimmer */}
-            <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <ShoppingCart className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 group-hover/btn:rotate-[-8deg] transition-transform duration-300" />
-            <span className="relative">Buy Now</span>
+          <Link to="/cart" className="buy-now-btn">
+            <ShoppingCart className="buy-now-icon" />
+            <span className="buy-now-label">Buy Now</span>
           </Link>
         </motion.div>
       </div>
@@ -111,14 +111,38 @@ const ProductCard = ({ product }) => {
   );
 };
 
-// ==================== SALE PAGE ====================
+/* ============================== Sale Page ============================== */
 const Sale = () => {
+  // ✅ Shared wishlist synced with localStorage
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    window.dispatchEvent(new Event('wishlist:updated'));
+  }, [wishlist]);
+
+  const toggleWishlist = (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlist((prev) => {
+      const exists = prev.find((item) => item.id === product.id);
+      return exists
+        ? prev.filter((item) => item.id !== product.id)
+        : [...prev, product];
+    });
+  };
+
   const saleItems = products.filter((p) => p.badge === 'Sale').slice(0, 8);
 
   return (
-    // ✅ Background color removed (now plain white)
     <div className="min-h-screen w-full bg-white">
-      {/* ==================== SALE ITEMS ==================== */}
       {saleItems.length > 0 ? (
         <section className="py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -152,7 +176,7 @@ const Sale = () => {
               </div>
 
               <Link
-                to="/shop"
+                to="/products"
                 className="group relative inline-flex items-center gap-1.5 text-indigo-600 text-sm sm:text-base font-semibold hover:gap-3 transition-all duration-300 hover:text-purple-600"
               >
                 Browse all
@@ -170,13 +194,18 @@ const Sale = () => {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
             >
               {saleItems.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  wishlist={wishlist}
+                  toggleWishlist={toggleWishlist}
+                />
               ))}
             </motion.div>
           </div>
         </section>
       ) : (
-        /* ==================== EMPTY STATE ==================== */
+        /* Empty State */
         <section className="py-20">
           <div className="max-w-md mx-auto px-4 text-center">
             <motion.div
@@ -195,7 +224,7 @@ const Sale = () => {
             </p>
             <motion.div whileTap={{ scale: 0.96 }} className="inline-block">
               <Link
-                to="/shop"
+                to="/products"
                 className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-[length:200%_100%] bg-left hover:bg-right hover:from-purple-600 hover:to-rose-500 text-white font-semibold py-3 px-6 rounded-full transition-all duration-500 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-purple-500/40 active:scale-[0.97] overflow-hidden"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
@@ -207,7 +236,7 @@ const Sale = () => {
         </section>
       )}
 
-      {/* ==================== PROMO BANNER ==================== */}
+      {/* Promo Banner */}
       <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -257,7 +286,7 @@ const Sale = () => {
 
                 <motion.div whileTap={{ scale: 0.96 }} className="inline-block">
                   <Link
-                    to="/shop/sale"
+                    to="/products/sale"
                     className="group relative inline-flex items-center gap-2 px-6 sm:px-8 py-3 bg-white text-indigo-700 text-sm sm:text-base font-bold rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 active:scale-[0.97] overflow-hidden"
                   >
                     <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-indigo-100 to-transparent" />
@@ -279,7 +308,7 @@ const Sale = () => {
                   transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
                   src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&h=600&fit=crop"
                   alt="Sale"
-                  className="w-72 h-50 object-cover rounded-3xl shadow-2xl"
+                  className="w-72 h-72 object-cover rounded-3xl shadow-2xl"
                 />
               </motion.div>
             </div>

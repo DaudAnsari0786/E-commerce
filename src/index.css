@@ -1,32 +1,55 @@
 @import "tailwindcss";
 
-
+/* ============================== Base ============================== */
 html {
   scroll-behavior: smooth;
 }
+
 * {
   scroll-behavior: smooth;
 }
 
+/* Prevent horizontal scroll jank */
+html, body {
+  overflow-x: hidden;
+}
 
+/* Better focus ring for accessibility */
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* ============================== Scrollbar ============================== */
+/* Fully hidden scrollbars (cross-browser) */
 ::-webkit-scrollbar {
   width: 0px;
   height: 0px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: #2c2c2c;
+html {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE / Edge */
 }
 
-::-webkit-scrollbar-thumb {
-  background-color: #555;
-  border-radius: 0px;
-}
+/*
+  Scrollbar track/thumb styles below are kept for reference.
+  Uncomment if you decide to show scrollbars later.
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: #777;
-}
+  ::-webkit-scrollbar-track {
+    background: #2c2c2c;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 0px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #777;
+  }
+*/
 
+/* ============================== Image Utilities ============================== */
 .invertImg {
   filter: invert(0.23);
 }
@@ -34,18 +57,98 @@ html {
 .noInvertImg {
   filter: invert(0);
 }
-.dark {
-  background: linear-gradient(to right, #111827 0%, #312e81 50%, #111827 100%);
+
+/* ============================== Buy Now Button ============================== */
+.buy-now-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 15px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
   color: #ffffff;
-
+  background: linear-gradient(90deg, #111827, #312e81, #111827);
+  background-size: 200% 100%;
+  background-position: left center;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-position 0.5s ease, box-shadow 0.3s ease, transform 0.15s ease;
 }
 
-.btn-dark-gradient:hover {
-  background: linear-gradient(to right, #4f46e5 0%, #9333ea 50%, #4f46e5 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px -6px rgba(79, 70, 229, 0.4);
+.buy-now-btn:hover {
+  background: linear-gradient(90deg, #4f46e5, #9333ea, #4f46e5);
+  background-size: 200% 100%;
+  background-position: right center;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
 }
 
-.btn-dark-gradient:active {
-  transform: translateY(0) scale(0.97);
+.buy-now-btn:active {
+  transform: scale(0.97);
+}
+
+.buy-now-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: transform 0.7s ease;
+  pointer-events: none;
+}
+
+.buy-now-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.buy-now-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s ease;
+}
+
+.buy-now-btn:hover .buy-now-icon {
+  transform: translateY(-2px) rotate(-8deg);
+}
+
+.buy-now-label {
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 640px) {
+  .buy-now-btn {
+    padding: 12px 18px;
+    font-size: 14px;
+  }
+  .buy-now-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ============================== Optional: Scrollbar-Hide Utility ============================== */
+.scrollbar-hide {
+  -ms-overflow-style: none;   /* IE/Edge */
+  scrollbar-width: none;      /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;              /* Chrome/Safari/Opera */
+}
+
+/* ============================== Optional: Reduced Motion ============================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  html, * {
+    scroll-behavior: auto !important;
+  }
 }

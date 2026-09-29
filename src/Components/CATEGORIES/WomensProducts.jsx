@@ -5,33 +5,29 @@ import { WomensProducts as womensData } from '../../AllProductsData/WomensProduc
 import { Star, Heart, ShoppingCart } from 'lucide-react';
 
 const WomensProducts = () => {
-  // ✅ Load wishlist from localStorage on first mount
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('wishlist');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // ✅ Save wishlist to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    window.dispatchEvent(new Event('wishlist:updated'));
   }, [wishlist]);
 
-  // ✅ Toggle function: adds/removes the FULL product object
   const toggleWishlist = (e, product) => {
     e.preventDefault();
     e.stopPropagation();
-
     setWishlist((prev) => {
       const exists = prev.find((item) => item.id === product.id);
       return exists
-        ? prev.filter((item) => item.id !== product.id) // Remove
-        : [...prev, product];                           // Add full object
+        ? prev.filter((item) => item.id !== product.id)
+        : [...prev, product];
     });
   };
 
   return (
     <div className="w-full">
-      {/* Section Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Women's Collection</h2>
@@ -41,7 +37,6 @@ const WomensProducts = () => {
         </div>
       </div>
 
-      {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {womensData.map((product) => {
           const isWishlisted = wishlist.some((item) => item.id === product.id);
@@ -70,7 +65,6 @@ const WomensProducts = () => {
                   </span>
                 )}
 
-                {/* ✅ Wishlist Heart Button */}
                 <button
                   type="button"
                   onClick={(e) => toggleWishlist(e, product)}
@@ -81,15 +75,10 @@ const WomensProducts = () => {
                   }`}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
-                  <Heart
-                    className={`w-4 h-4 transition-all duration-200 ${
-                      isWishlisted ? 'fill-current' : ''
-                    }`}
-                  />
+                  <Heart className={`w-4 h-4 transition-all duration-200 ${isWishlisted ? 'fill-current' : ''}`} />
                 </button>
               </div>
 
-              {/* Product Details */}
               <div className="p-4 flex flex-col flex-1">
                 <div className="flex items-center gap-1 mb-1.5">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -105,10 +94,7 @@ const WomensProducts = () => {
 
                 <div className="flex flex-wrap gap-1 mt-2">
                   {product.sizes.slice(0, 3).map((size) => (
-                    <span
-                      key={size}
-                      className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"
-                    >
+                    <span key={size} className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
                       {size}
                     </span>
                   ))}
@@ -126,16 +112,10 @@ const WomensProducts = () => {
                   )}
                 </div>
 
-                {/* ✅ Buy Now Button */}
                 <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-                  <Link
-                    to="/cart"
-                    className="group/btn relative inline-flex items-center justify-center gap-2 w-full rounded-lg font-semibold text-white py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 bg-[length:200%_100%] bg-left hover:bg-right hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-[0.97] overflow-hidden"
-                  >
-                    {/* Shimmer */}
-                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <ShoppingCart className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 group-hover/btn:rotate-[-8deg] transition-transform duration-300" />
-                    <span className="relative">Buy Now</span>
+                  <Link to="/cart" className="buy-now-btn">
+                    <ShoppingCart className="buy-now-icon" />
+                    <span className="buy-now-label">Buy Now</span>
                   </Link>
                 </motion.div>
               </div>

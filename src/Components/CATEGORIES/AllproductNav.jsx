@@ -46,18 +46,20 @@ const sectionWrapperVariants = {
   },
 };
 
-// ✅ Page transition variants for the Outlet content
+// ✅ Smooth page transition with fade-up + scale
 const pageTransitionVariants = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 40, scale: 0.98 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    scale: 1,
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
   },
   exit: {
     opacity: 0,
-    y: -20,
-    transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+    y: -30,
+    scale: 0.98,
+    transition: { duration: 0.3, ease: [0.4, 0, 1, 1] },
   },
 };
 
@@ -146,15 +148,11 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           )}
         </div>
 
-        {/* CTA */}
+        {/* CTA — Uses global .buy-now-btn from index.css */}
         <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-          <Link
-            to="/cart"
-            className="group/btn relative inline-flex items-center justify-center gap-2 w-full rounded-lg font-semibold text-white py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 bg-[length:200%_100%] bg-left hover:bg-right hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-[0.97] overflow-hidden"
-          >
-            <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <ShoppingCart className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 group-hover/btn:rotate-[-8deg] transition-transform duration-300" />
-            <span className="relative">Buy Now</span>
+          <Link to="/cart" className="buy-now-btn">
+            <ShoppingCart className="buy-now-icon" />
+            <span className="buy-now-label">Buy Now</span>
           </Link>
         </motion.div>
       </div>
@@ -307,9 +305,8 @@ const AllproductNav = () => {
         </div>
       </div>
 
-      {/* ---------- Main Content Area with Transition ---------- */}
+      {/* ---------- Main Content Area with Smooth Transition ---------- */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ✅ AnimatePresence mode="wait" ensures exit runs before enter */}
         <AnimatePresence mode="wait">
           {/* On /products (All tab) */}
           {isIndexRoute && (

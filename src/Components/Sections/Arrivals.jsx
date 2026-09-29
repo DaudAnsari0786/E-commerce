@@ -51,7 +51,7 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           </span>
         )}
 
-        {/* ✅ Animated Wishlist Heart Button */}
+        {/* ✅ Wishlist Heart Button */}
         <button
           type="button"
           onClick={(e) => toggleWishlist(e, product)}
@@ -95,16 +95,11 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           )}
         </div>
 
-        {/* ✅ Animated Buy Now Button */}
+        {/* ✅ Buy Now Button — Simple CSS */}
         <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-          <Link
-            to="/cart"
-            className="group/btn relative inline-flex items-center justify-center gap-2 w-full rounded-lg font-semibold text-white py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 bg-[length:200%_100%] bg-left hover:bg-right hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-[0.97] overflow-hidden"
-          >
-            {/* Shimmer */}
-            <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <ShoppingCart className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 group-hover/btn:rotate-[-8deg] transition-transform duration-300" />
-            <span className="relative">Buy Now</span>
+          <Link to="/cart" className="buy-now-btn">
+            <ShoppingCart className="buy-now-icon" />
+            <span className="buy-now-label">Buy Now</span>
           </Link>
         </motion.div>
       </div>
@@ -164,7 +159,7 @@ const Arrivals = () => {
             </p>
           </div>
 
-          {/* ✅ Right: Browse Products Link */}
+          {/* Right: Browse Products Link */}
           <Link
             to="/products"
             className="group relative inline-flex items-center gap-1.5 text-indigo-600 text-sm sm:text-base font-semibold hover:gap-3 transition-all duration-300 hover:text-purple-600"

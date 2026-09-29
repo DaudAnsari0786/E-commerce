@@ -11,21 +11,20 @@ const GirlsProducts = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // ✅ Save wishlist to localStorage whenever it changes
+  // ✅ Save wishlist to localStorage + notify Navbar
   useEffect(() => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    window.dispatchEvent(new Event('wishlist:updated'));
   }, [wishlist]);
 
-  // ✅ Toggle function: adds/removes the FULL product object
   const toggleWishlist = (e, product) => {
     e.preventDefault();
     e.stopPropagation();
-
     setWishlist((prev) => {
       const exists = prev.find((item) => item.id === product.id);
       return exists
-        ? prev.filter((item) => item.id !== product.id) // Remove
-        : [...prev, product];                           // Add full object
+        ? prev.filter((item) => item.id !== product.id)
+        : [...prev, product];
     });
   };
 
@@ -42,7 +41,7 @@ const GirlsProducts = () => {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {girlsData.map((product) => {
           const isWishlisted = wishlist.some((item) => item.id === product.id);
 
@@ -51,7 +50,7 @@ const GirlsProducts = () => {
               key={product.id}
               className="group cursor-pointer bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
             >
-              <div className="relative aspect-[4/4] overflow-hidden bg-gray-100">
+              <div className="relative aspect-square overflow-hidden bg-gray-100">
                 <img
                   src={product.image}
                   alt={product.name}
@@ -70,7 +69,7 @@ const GirlsProducts = () => {
                   </span>
                 )}
 
-                {/* ✅ Wishlist Heart Button */}
+                {/* Wishlist Heart Button */}
                 <button
                   type="button"
                   onClick={(e) => toggleWishlist(e, product)}
@@ -81,11 +80,7 @@ const GirlsProducts = () => {
                   }`}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
-                  <Heart
-                    className={`w-4 h-4 transition-all duration-200 ${
-                      isWishlisted ? 'fill-current' : ''
-                    }`}
-                  />
+                  <Heart className={`w-4 h-4 transition-all duration-200 ${isWishlisted ? 'fill-current' : ''}`} />
                 </button>
               </div>
 
@@ -118,16 +113,11 @@ const GirlsProducts = () => {
                   )}
                 </div>
 
-                {/* ✅ Buy Now Button */}
+                {/* ✅ Buy Now Button — Uses global CSS */}
                 <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-                  <Link
-                    to="/cart"
-                    className="group/btn relative inline-flex items-center justify-center gap-2 w-full rounded-lg font-semibold text-white py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 bg-[length:200%_100%] bg-left hover:bg-right hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-[0.97] overflow-hidden"
-                  >
-                    {/* Shimmer */}
-                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <ShoppingCart className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 group-hover/btn:rotate-[-8deg] transition-transform duration-300" />
-                    <span className="relative">Buy Now</span>
+                  <Link to="/cart" className="buy-now-btn">
+                    <ShoppingCart className="buy-now-icon" />
+                    <span className="buy-now-label">Buy Now</span>
                   </Link>
                 </motion.div>
               </div>

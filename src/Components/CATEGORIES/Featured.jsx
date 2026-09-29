@@ -2,11 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, Heart, ShoppingCart, ArrowRight, Sparkles } from 'lucide-react';
-
-// ✅ Import products from your main product file (customize this list as needed)
 import products from '../../Product.js';
 
-/* ============================== Animation Variants ============================== */
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -20,7 +17,6 @@ const staggerContainer = {
   },
 };
 
-/* ============================== Product Card ============================== */
 const ProductCard = ({ product, wishlist, toggleWishlist }) => {
   const isWishlisted = wishlist.some((item) => item.id === product.id);
 
@@ -32,8 +28,8 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
     product.badge === 'Sale'
       ? 'bg-gradient-to-r from-rose-500 to-pink-500'
       : product.badge === 'New'
-      ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-      : 'bg-gradient-to-r from-amber-500 to-orange-500';
+        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+        : 'bg-gradient-to-r from-amber-500 to-orange-500';
 
   return (
     <motion.div
@@ -43,7 +39,6 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 hover:border-indigo-200 transition-all flex flex-col cursor-pointer"
     >
-      {/* Image */}
       <Link to={`/products/${product.category}`} className="block relative overflow-hidden">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <img
@@ -53,23 +48,18 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
           />
 
-          {/* Badge */}
           {product.badge && (
-            <span
-              className={`absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full text-white shadow-md ${badgeColor}`}
-            >
+            <span className={`absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full text-white shadow-md ${badgeColor}`}>
               {product.badge}
             </span>
           )}
 
-          {/* Discount */}
           {discount > 0 && (
             <span className="absolute bottom-3 left-3 px-2.5 py-1 text-[10px] font-bold bg-rose-500 text-white rounded-full shadow-md">
               -{discount}%
             </span>
           )}
 
-          {/* Wishlist Heart */}
           <button
             type="button"
             onClick={(e) => toggleWishlist(e, product)}
@@ -85,27 +75,21 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
         </div>
       </Link>
 
-      {/* Details */}
       <div className="p-4 flex flex-col flex-1">
         <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-indigo-700 transition-colors">
           {product.name}
         </h3>
 
-        {/* Rating */}
         <div className="flex items-center gap-1 mt-1.5">
           <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
           <span className="text-xs font-semibold text-gray-700">{product.rating}</span>
           <span className="text-xs text-gray-400">({product.reviews})</span>
         </div>
 
-        {/* Sizes */}
         {product.sizes && product.sizes.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {product.sizes.slice(0, 3).map((size) => (
-              <span
-                key={size}
-                className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"
-              >
+              <span key={size} className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
                 {size}
               </span>
             ))}
@@ -117,7 +101,6 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           </div>
         )}
 
-        {/* Price */}
         <div className="flex items-baseline gap-2 mt-3 mb-3">
           <span className="text-lg font-bold text-gray-900">
             ₹{product.price.toLocaleString('en-IN')}
@@ -129,16 +112,11 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           )}
         </div>
 
-        {/* Buy Now Button */}
+        {/* ✅ Simple CSS Buy Now Button */}
         <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-          <Link
-            to="/cart"
-            className="group/btn relative inline-flex items-center justify-center gap-2 w-full rounded-lg font-semibold text-white py-2.5 text-xs sm:text-sm bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 bg-[length:200%_100%] bg-left hover:bg-right hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-[0.97] overflow-hidden"
-          >
-            {/* Shimmer */}
-            <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <ShoppingCart className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 group-hover/btn:rotate-[-8deg] transition-transform duration-300" />
-            <span className="relative">Buy Now</span>
+          <Link to="/cart" className="buy-now-btn">
+            <ShoppingCart className="buy-now-icon" />
+            <span className="buy-now-label">Buy Now</span>
           </Link>
         </motion.div>
       </div>
@@ -146,9 +124,7 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
   );
 };
 
-/* ============================== Featured Section ============================== */
 const Featured = () => {
-  // ✅ Shared wishlist synced with localStorage
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('wishlist');
@@ -166,7 +142,6 @@ const Featured = () => {
   const toggleWishlist = (e, product) => {
     e.preventDefault();
     e.stopPropagation();
-
     setWishlist((prev) => {
       const exists = prev.find((item) => item.id === product.id);
       return exists
@@ -175,16 +150,11 @@ const Featured = () => {
     });
   };
 
-  // ✅ Pick 8 featured products (you can customize this logic)
-  // Examples: highest rating, on-sale items, curated picks, etc.
-  const featuredItems = products
-    .filter((p) => p.rating >= 4.5) // Only show high-rated items
-    .slice(0, 8);
+  const featuredItems = products.filter((p) => p.rating >= 4.5).slice(0, 8);
 
   return (
     <section className="relative py-12 sm:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -215,7 +185,6 @@ const Featured = () => {
           </Link>
         </motion.div>
 
-        {/* Products Grid */}
         {featuredItems.length > 0 ? (
           <motion.div
             variants={staggerContainer}
