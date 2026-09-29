@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import About from "./About"
-import Arrival from "./Arrivals"
-import Shop from '../FEATURES/AllproductNav';
+import { Link } from 'react-router-dom'; // ✅ Added this import
+import About from "./About";
+import Arrival from "./Arrivals";
 import Contact from './Contact';
-import Testimonial from "./Testimonial"
-import Profile from '../Forms/Profile';
+import Testimonial from "./Testimonial";
+import Featured from '../CATEGORIES/Featured';
+
 const Home = () => {
   const container = {
     hidden: { opacity: 0 },
@@ -135,14 +136,18 @@ const Home = () => {
               variants={fadeUp}
               className="mt-8 sm:mt-9 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center md:justify-start"
             >
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 20px 40px -10px rgba(79,70,229,0.5)' }}
-                whileTap={{ scale: 0.95 }}
-                className="group w-full sm:w-auto px-6 sm:px-7 py-3 sm:py-3.5 bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white rounded-full font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
-              >
-                Shop Now
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </motion.button>
+              {/* ✅ UPDATED: Wrapped Shop Now button with Link to /products */}
+              <Link to="/products" className="w-full sm:w-auto">
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 20px 40px -10px rgba(79,70,229,0.5)' }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group w-full px-6 sm:px-7 py-3 sm:py-3.5 bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white rounded-full font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+                >
+                  Shop Now
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </motion.button>
+              </Link>
+
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -319,13 +324,12 @@ const Home = () => {
           ))}
         </div>
       </motion.div>
-
-
-
-
 <div className="">
-  <Testimonial/>
+  <Featured/>
 </div>
+      <div className="">
+        <Testimonial />
+      </div>
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }

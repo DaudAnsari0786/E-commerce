@@ -2,10 +2,15 @@ import React, { useEffect } from 'react';
 import { Link, Route, Routes, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/* ---------- Layout Components ---------- */
 import Navbar from './Components/Navbar/Navbar';
+import Footer from './Components/Footer/Footer';
+// ✅ FIXED PATH: Added the missing '/' between CATEGORIES and AllproductNav
+import AllproductNav from './Components/CATEGORIES/AllproductNav';
+
+/* ---------- Section Components ---------- */
 import Home from './Components/Sections/Home';
 import About from './Components/Sections/About';
-import Footer from './Components/Footer/Footer';
 import Products from './Components/Sections/Products';
 import Contact from './Components/Sections/Contact';
 import Resource from './Components/Sections/Resource';
@@ -13,11 +18,14 @@ import WishList from './Components/Sections/WishList';
 import Cart from './Components/Sections/Cart';
 import Arrivals from './Components/Sections/Arrivals';
 import Sale from './Components/Sections/Sale';
+
+/* ---------- Category Components ---------- */
 import MensProducts from './Components/CATEGORIES/MensProducts';
 import WomensProducts from './Components/CATEGORIES/WomensProducts';
 import KidsProducts from './Components/CATEGORIES/KidsProducts';
 import GirlsProducts from './Components/CATEGORIES/GirlsProducts';
-import AllproductNav from './Components/FEATURES/AllproductNav';
+
+/* ---------- Form/User Components ---------- */
 import Profile from './Components/Forms/Profile';
 import EditProfile from './Components/Forms/EditProfile';
 import Settings from './Components/Forms/Settings';
@@ -25,16 +33,20 @@ import Address from './Components/Forms/Address';
 import Orders from './Components/Forms/Orders';
 import Login from './Components/Forms/Login';
 import Signup from './Components/Forms/Signup';
+
+/* ---------- Context & Utils ---------- */
 import { useUser } from './context/UserContext';
 import FAQ from './FooterLinks/FAQ';
+import Featured from './Components/CATEGORIES/Featured';
 
-/* ---------- Page transition variants ---------- */
+/* ============================== Animation Variants ============================== */
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
   exit: { opacity: 0, y: -20, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
 };
 
+/* ============================== Helper Components ============================== */
 const PageWrapper = ({ children }) => (
   <motion.div
     variants={pageVariants}
@@ -47,37 +59,19 @@ const PageWrapper = ({ children }) => (
   </motion.div>
 );
 
-/* ---------- Main Layout (Navbar & Footer stay mounted here) ---------- */
-const MainLayout = () => {
-  const location = useLocation();
-  
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-1">
-        {/* AnimatePresence only wraps the Outlet (the changing page content) */}
-        <AnimatePresence mode="wait">
-          <Outlet key={location.pathname} />
-        </AnimatePresence>
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
-/* ---------- Route guard ---------- */
+/* ---------- Route Guard: Requires Login ---------- */
 const RequireLogin = ({ children }) => {
   const { user } = useUser();
   return user ? children : <Navigate to="/login" replace />;
 };
 
-/* ---------- Redirect logged-in users away from /login & /signup ---------- */
+/* ---------- Route Guard: Redirect if already logged in ---------- */
 const RedirectIfLoggedIn = ({ children }) => {
   const { user } = useUser();
   return user ? <Navigate to="/profile" replace /> : children;
 };
 
-/* ---------- Placeholder ---------- */
+/* ---------- Placeholder Page ---------- */
 const Placeholder = ({ title, description }) => (
   <PageWrapper>
     <section className="min-h-[70vh] flex items-center justify-center bg-white px-4 py-16">
@@ -86,7 +80,10 @@ const Placeholder = ({ title, description }) => (
         <p className="text-gray-600 text-sm sm:text-base mb-6">
           {description || 'This page is under construction. Check back soon!'}
         </p>
-        <Link to="/" className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200">
+        <Link
+          to="/"
+          className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 px-6 rounded-full transition-colors duration-200"
+        >
           Back to Home
         </Link>
       </div>
@@ -94,18 +91,29 @@ const Placeholder = ({ title, description }) => (
   </PageWrapper>
 );
 
-/* ---------- 404 ---------- */
+/* ---------- 404 Page ---------- */
 const NotFound = () => (
   <PageWrapper>
     <section className="min-h-screen flex items-center justify-center bg-white px-4 py-10 font-serif">
       <div className="w-full max-w-3xl text-center">
-        <div className="h-[400px] bg-center bg-no-repeat bg-contain" style={{ backgroundImage: 'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)' }}>
+        <div
+          className="h-[400px] bg-center bg-no-repeat bg-contain"
+          style={{
+            backgroundImage:
+              'url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif)',
+          }}
+        >
           <h1 className="text-[80px] font-bold text-gray-800">404</h1>
         </div>
         <div className="-mt-12">
-          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Look like you're lost</h3>
+          <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+            Look like you're lost
+          </h3>
           <p className="text-gray-600 mb-6">The page you are looking for is not available!</p>
-          <Link to="/" className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+          <Link
+            to="/"
+            className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+          >
             Go to Home
           </Link>
         </div>
@@ -123,7 +131,31 @@ const ScrollToTop = () => {
   return null;
 };
 
-/* ---------- Placeholder routes ---------- */
+/* ============================== Layouts ============================== */
+
+/**
+ * MainLayout - Persists Navbar and Footer across all child routes.
+ * Uses <Outlet /> to render the active page inside <main>.
+ * AnimatePresence handles page transitions without unmounting the layout.
+ */
+const MainLayout = () => {
+  const location = useLocation();
+  
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-1">
+        <AnimatePresence mode="wait">
+          {/* Keying on pathname ensures exit animations run before new page enters */}
+          <Outlet key={location.pathname} />
+        </AnimatePresence>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+/* ============================== Static Data ============================== */
 const placeholderRoutes = [
   { path: '/account', title: 'My Account', description: 'Manage your profile, orders, and addresses.' },
   { path: '/careers', title: 'Careers at StyleCraft', description: "We're hiring! Explore open roles." },
@@ -133,7 +165,6 @@ const placeholderRoutes = [
   { path: '/affiliates', title: 'Affiliate Program', description: 'Earn commissions by referring friends.' },
   { path: '/templates', title: 'Templates', description: 'Free style guides and outfit templates.' },
   { path: '/pricing', title: 'Pricing', description: 'Membership plans and benefits.' },
-  { path: '/faq', title: 'Frequently Asked Questions', description: 'Quick answers to common questions.' },
   { path: '/shipping', title: 'Shipping Information', description: 'Delivery timelines and charges.' },
   { path: '/returns', title: 'Returns & Refunds', description: 'Our 30-day hassle-free return policy.' },
   { path: '/size-guide', title: 'Size Guide', description: 'Find your perfect fit.' },
@@ -143,7 +174,7 @@ const placeholderRoutes = [
   { path: '/cookies', title: 'Cookie Policy', description: 'How we use cookies.' },
 ];
 
-/* ---------- App ---------- */
+/* ============================== App Component ============================== */
 const App = () => {
   // Apply saved dark-mode preference on first load
   useEffect(() => {
@@ -152,29 +183,37 @@ const App = () => {
       const prefs = raw ? JSON.parse(raw) : {};
       if (prefs.darkMode) document.documentElement.classList.add('dark');
       else document.documentElement.classList.remove('dark');
-    } catch { /* ignore corrupt storage */ }
+    } catch {
+      /* ignore corrupt storage */
+    }
   }, []);
 
   return (
     <>
       <ScrollToTop />
       <Routes>
-        {/* ---------- AUTH (public, fullscreen, no Navbar/Footer) ---------- */}
-        <Route path="/login" element={<RedirectIfLoggedIn><Login /></RedirectIfLoggedIn>} />
-        <Route path="/signup" element={<RedirectIfLoggedIn><Signup /></RedirectIfLoggedIn>} />
+        {/* ---------- AUTH ROUTES (No Navbar/Footer) ---------- */}
+        <Route 
+          path="/login" 
+          element={<RedirectIfLoggedIn><Login /></RedirectIfLoggedIn>} 
+        />
+        <Route 
+          path="/signup" 
+          element={<RedirectIfLoggedIn><Signup /></RedirectIfLoggedIn>} 
+        />
 
-        {/* ---------- MAIN LAYOUT (Navbar & Footer persist here) ---------- */}
+        {/* ---------- MAIN LAYOUT (Navbar & Footer Persist) ---------- */}
         <Route element={<MainLayout />}>
-          {/* Core */}
+          
+          {/* Core Pages */}
           <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+          <Route path="/featured" element={<PageWrapper><Featured /></PageWrapper>} />
           <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
           <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
           <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
-          
-          {/* Footer Links */}
           <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
 
-          {/* Products (nested layout) */}
+          {/* Products (Nested Layout) */}
           <Route path="/products" element={<AllproductNav />}>
             <Route index element={<Products />} />
             <Route path="mens" element={<MensProducts />} />
@@ -185,7 +224,7 @@ const App = () => {
             <Route path="sale" element={<Sale />} />
           </Route>
 
-          {/* Protected */}
+          {/* Protected Routes */}
           <Route path="/profile" element={<RequireLogin><PageWrapper><Profile /></PageWrapper></RequireLogin>} />
           <Route path="/edit-profile" element={<RequireLogin><PageWrapper><EditProfile /></PageWrapper></RequireLogin>} />
           <Route path="/settings" element={<RequireLogin><PageWrapper><Settings /></PageWrapper></RequireLogin>} />
@@ -196,10 +235,14 @@ const App = () => {
 
           {/* Placeholder Routes */}
           {placeholderRoutes.map(({ path, title, description }) => (
-            <Route key={path} path={path} element={<Placeholder title={title} description={description} />} />
+            <Route 
+              key={path} 
+              path={path} 
+              element={<Placeholder title={title} description={description} />} 
+            />
           ))}
 
-          {/* 404 */}
+          {/* 404 Catch-All */}
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

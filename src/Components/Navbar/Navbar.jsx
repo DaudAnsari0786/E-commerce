@@ -185,11 +185,58 @@ const Badge = ({ count, gradient, ring }) =>
     </span>
   ) : null;
 
+/* ============================== Hook: Live Wishlist Count ============================== */
+const useWishlistCount = () => {
+  const [count, setCount] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wishlist');
+      return saved ? JSON.parse(saved).length : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    const update = () => {
+      try {
+        const saved = localStorage.getItem('wishlist');
+        setCount(saved ? JSON.parse(saved).length : 0);
+      } catch {
+        setCount(0);
+      }
+    };
+
+    // ✅ Listen for changes from OTHER tabs
+    const handleStorage = (e) => {
+      if (e.key === 'wishlist') update();
+    };
+
+    // ✅ Listen for changes in the SAME tab (custom event)
+    const handleCustom = () => update();
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('wishlist:updated', handleCustom);
+
+    // Initial read
+    update();
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('wishlist:updated', handleCustom);
+    };
+  }, []);
+
+  return count;
+};
+
 /* ============================== Component ============================== */
-const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
+const Navbar = ({ className = '', cartCount = 2 }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useUser();
+
+  // ✅ Live wishlist count synced with localStorage
+  const wishlistCount = useWishlistCount();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -263,9 +310,8 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ✅ UPDATED: This effect now closes all dropdowns/menus when the route changes
+  // Close all dropdowns/menus when the route changes
   useEffect(() => {
-    // Close all menus on route change
     setIsMobileOpen(false);
     setIsMobileShopOpen(false);
     setIsMobileAccountOpen(false);
@@ -273,7 +319,6 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
     setIsAccountOpen(false);
     setIsSearchOpen(false);
 
-    // Highlight the active account row based on URL
     const match = accountRoutes.find((r) => location.pathname.startsWith(r.path));
     setActiveAccountRow(match ? match.key : null);
   }, [location.pathname]);
@@ -896,6 +941,19 @@ const Navbar = ({ className = '', cartCount = 2, wishlistCount = 3 }) => {
             >
               {isSearchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
             </motion.button>
+
+            {/* ✅ Wishlist Icon (Mobile) with live badge */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/wishlist"
+                className="relative inline-flex items-center justify-center rounded-md border border-pink-100 bg-pink-50 p-2 text-pink-600 hover:bg-pink-100 hover:border-pink-200 transition-colors"
+                aria-label="Wishlist"
+                onClick={closeMobileMenu}
+              >
+                <Heart className="h-4 w-4" />
+                <Badge count={wishlistCount} gradient="bg-gradient-to-br from-pink-500 to-rose-500" ring="ring-2 ring-white" />
+              </Link>
+            </motion.div>
 
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link

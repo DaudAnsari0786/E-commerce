@@ -119,13 +119,13 @@ const Footer = () => {
     <footer className="mt-auto w-full bg-gray-900 text-gray-300">
       {/* Trust badges */}
       <div className="border-b border-gray-800 bg-gray-950">
-        <div className="container mx-auto grid grid-cols-2 gap-3 px-3 py-4 sm:px-6 lg:grid-cols-4">
+        <div className="container mx-auto place-items-center grid grid-cols-2 gap-3 px-3 py-4 sm:px-6 lg:grid-cols-4">
           {trustBadges.map(({ icon: Icon, title, subtitle }) => (
             <motion.div
               key={title}
               whileHover={{ y: -3 }}
               transition={hoverTransition}
-              className="flex cursor-pointer items-center gap-2"
+              className="flex cursor-pointer py-3 sm:py-0 items-center gap-2"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-900/40 text-blue-400">
                 <Icon className="h-4 w-4" />

@@ -30,11 +30,11 @@ const ProductCard = ({ product }) => {
       whileHover={{ y: -8, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="group bg-gradient-to-b from-white to-gray-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-indigo-200/40 border border-gray-100 hover:border-indigo-200 transition-all flex flex-col cursor-pointer"
+      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-indigo-200/40 border border-gray-100 hover:border-indigo-200 transition-all flex flex-col cursor-pointer"
     >
       {/* Image */}
       <Link to={`/shop/${product.category}`} className="block relative overflow-hidden">
-        <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
+        <div className="relative aspect-[4/4] overflow-hidden bg-gray-100">
           <img
             src={product.image}
             alt={product.name}
@@ -116,7 +116,8 @@ const Sale = () => {
   const saleItems = products.filter((p) => p.badge === 'Sale').slice(0, 8);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-rose-50">
+    // ✅ Background color removed (now plain white)
+    <div className="min-h-screen w-full bg-white">
       {/* ==================== SALE ITEMS ==================== */}
       {saleItems.length > 0 ? (
         <section className="py-12 sm:py-16">
