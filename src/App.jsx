@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 /* ---------- Layout Components ---------- */
 import Navbar from './Components/Navbar/Navbar';
 import Footer from './Components/Footer/Footer';
-// ✅ FIXED PATH: Added the missing '/' between CATEGORIES and AllproductNav
 import AllproductNav from './Components/CATEGORIES/AllproductNav';
 
 /* ---------- Section Components ---------- */
@@ -131,20 +130,13 @@ const ScrollToTop = () => {
   return null;
 };
 
-/* ============================== Layouts ============================== */
-
-/**
- * MainLayout - Persists Navbar and Footer across all child routes.
- * Uses <Outlet /> to render the active page inside <main>.
- * AnimatePresence handles page transitions without unmounting the layout.
- */
 const MainLayout = () => {
   const location = useLocation();
   
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 top">
         <AnimatePresence mode="wait">
           {/* Keying on pathname ensures exit animations run before new page enters */}
           <Outlet key={location.pathname} />
@@ -203,7 +195,7 @@ const App = () => {
         />
 
         {/* ---------- MAIN LAYOUT (Navbar & Footer Persist) ---------- */}
-        <Route element={<MainLayout />}>
+        <Route element={<MainLayout className="mt-30" />}>
           
           {/* Core Pages */}
           <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />

@@ -46,7 +46,7 @@ const Home = () => {
       {/* ================================================================ */}
       {/* HERO SECTION                                                     */}
       {/* ================================================================ */}
-      <section className="relative min-h-screen flex flex-col overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-rose-50">
+      <section className="relative  min-h-screen flex flex-col overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-rose-50">
         {/* Decorative blurred blobs */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}

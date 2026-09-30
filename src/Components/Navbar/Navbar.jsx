@@ -216,20 +216,14 @@ const MenuRow = ({ to, onClick, tile, Icon, label, description, badge, badgeClas
 
 /* ============================== Hooks ============================== */
 const useWishlistCount = () => {
-  const [count, setCount] = useState(() => {
-    try {
-      const saved = localStorage.getItem('wishlist');
-      return saved ? JSON.parse(saved).length : 0;
-    } catch {
-      return 0;
-    }
-  });
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     const update = () => {
       try {
         const saved = localStorage.getItem('wishlist');
-        setCount(saved ? JSON.parse(saved).length : 0);
+        const parsed = saved ? JSON.parse(saved) : [];
+        setCount(Array.isArray(parsed) ? parsed.length : 0);
       } catch {
         setCount(0);
       }
@@ -252,33 +246,6 @@ const useWishlistCount = () => {
   return count;
 };
 
-const useHideOnScroll = (threshold = 80) => {
-  const [hidden, setHidden] = useState(false);
-
-  useEffect(() => {
-    let lastY = window.scrollY;
-    let ticking = false;
-
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        if (Math.abs(y - lastY) > 5) {
-          setHidden(y > lastY && y > threshold);
-          lastY = y;
-        }
-        ticking = false;
-      });
-    };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [threshold]);
-
-  return hidden;
-};
-
 /* ============================== Component ============================== */
 const Navbar = ({ className = '' }) => {
   const location = useLocation();
@@ -287,7 +254,6 @@ const Navbar = ({ className = '' }) => {
 
   const wishlistCount = useWishlistCount();
   const cartCount = useCartCount();
-  const hidden = useHideOnScroll(80);
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -384,7 +350,6 @@ const Navbar = ({ className = '' }) => {
   }, []);
 
   useEffect(() => {
-    // Close everything on route change
     setIsMobileOpen(false);
     setIsMobileShopOpen(false);
     setIsMobileAccountOpen(false);
@@ -398,7 +363,7 @@ const Navbar = ({ className = '' }) => {
 
   /* ---------- Link classes ---------- */
   const linkClass = ({ isActive }) =>
-    `inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+    `inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
       isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100 hover:text-blue-700'
     }`;
 
@@ -410,7 +375,6 @@ const Navbar = ({ className = '' }) => {
   /* ============================== Account dropdown content ============================== */
   const AccountContent = ({ onItemClick }) => (
     <>
-      {/* Profile header (logged-in) */}
       {user && (
         <Link
           to="/profile"
@@ -433,7 +397,6 @@ const Navbar = ({ className = '' }) => {
         </Link>
       )}
 
-      {/* Profile menu (logged-in) */}
       {user && (
         <>
           <p className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
@@ -458,7 +421,6 @@ const Navbar = ({ className = '' }) => {
         </>
       )}
 
-      {/* Login / Signup (guest) */}
       {!user && (
         <>
           <p className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
@@ -496,40 +458,6 @@ const Navbar = ({ className = '' }) => {
         </>
       )}
 
-      <div className="my-2 border-t border-gray-100" />
-
-      {/* Wishlist + Cart */}
-      <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-        {user ? 'Shopping' : 'Your bag'}
-      </p>
-
-      <MenuRow
-        to="/wishlist"
-        onClick={() => onItemClick('wishlist')}
-        tile="bg-gradient-to-br from-pink-50 to-pink-100 text-pink-600 group-hover:from-pink-500 group-hover:to-pink-600 group-hover:text-white"
-        Icon={Heart}
-        label="Wishlist"
-        description="Your saved items"
-        badge={wishlistCount}
-        badgeClass="bg-gradient-to-br from-pink-500 to-rose-500 shadow-pink-500/30"
-        hoverRow="hover:bg-pink-50/70"
-        chevronClass="group-hover:text-pink-600"
-      />
-
-      <MenuRow
-        to="/cart"
-        onClick={() => onItemClick('cart')}
-        tile="bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 group-hover:from-blue-500 group-hover:to-blue-600 group-hover:text-white"
-        Icon={ShoppingCart}
-        label="Cart"
-        description="Review & checkout"
-        badge={cartCount}
-        badgeClass="bg-gradient-to-br from-blue-500 to-indigo-500 shadow-blue-500/30"
-        hoverRow="hover:bg-blue-50/70"
-        chevronClass="group-hover:text-blue-600"
-      />
-
-      {/* Sign out */}
       {user && (
         <>
           <div className="my-2 border-t border-gray-100" />
@@ -553,29 +481,30 @@ const Navbar = ({ className = '' }) => {
   );
 
   return (
-    <motion.header
-      className={`fixed top-0 left-0 right-0 z-[100] w-full bg-white shadow-sm border-b border-gray-200 transition-transform duration-300 ease-out ${
-        hidden ? '-translate-y-full' : 'translate-y-0'
-      } ${className}`}
-      initial={{ y: -40, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
+    <header
+      className={`fixed top-0 left-0 right-0 z-[100] w-full bg-white shadow-sm border-b border-gray-200 ${className}`}
     >
       <div className="container mx-auto px-3 sm:px-6">
-        <nav className="flex items-center justify-between gap-3 py-2 sm:py-3">
-          {/* Logo */}
-          <motion.div variants={logoVariants} initial="hidden" animate="visible">
-            <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
-              <span className="px-3 py-1 bg-blue-700 text-white text-xl sm:text-2xl font-bold rounded">A</span>
-              <span className="text-base sm:text-lg font-semibold tracking-tighter">
+        {/* ================= DESKTOP BAR (3-column layout) ================= */}
+        <nav className="hidden lg:flex items-center gap-3 py-3">
+          {/* LEFT: Logo */}
+          <motion.div
+            variants={logoVariants}
+            initial="hidden"
+            animate="visible"
+            className="shrink-0"
+          >
+            <Link to="/" className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-blue-700 text-white text-2xl font-bold rounded">A</span>
+              <span className="text-lg font-semibold tracking-tighter">
                 <span className="font-bold text-blue-800">Style</span>
                 <span className="text-gray-900">Craft</span>
               </span>
             </Link>
           </motion.div>
 
-          {/* Desktop nav */}
-          <div className="hidden items-center gap-1 lg:flex">
+          {/* CENTER: Nav links (centered) */}
+          <div className="flex-1 flex items-center justify-center gap-0.5">
             {desktopLinksBefore.map((item, i) => (
               <motion.div
                 key={item.label}
@@ -597,7 +526,7 @@ const Navbar = ({ className = '' }) => {
               <motion.button
                 type="button"
                 onClick={toggleShop}
-                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isShopOpen || isProductsSection
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-blue-700'
@@ -722,14 +651,9 @@ const Navbar = ({ className = '' }) => {
             ))}
           </div>
 
-          {/* Desktop Search + Account */}
-          <motion.div
-            className="hidden lg:flex items-center gap-3"
-            variants={navItemVariants}
-            initial="hidden"
-            animate="visible"
-            custom={5}
-          >
+          {/* RIGHT: Search + Wishlist + Cart + Profile / Account */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
@@ -739,7 +663,7 @@ const Navbar = ({ className = '' }) => {
                 onChange={(e) => setDesktopSearch(e.target.value)}
                 onKeyDown={handleSearch}
                 placeholder="Search clothes..."
-                className="w-58 xl:w-94 bg-gray-100 text-gray-900 placeholder-gray-400 pl-9 pr-9 py-2 text-sm rounded-full border border-transparent focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:bg-white transition"
+                className="w-56 xl:w-72 bg-gray-100 text-gray-900 placeholder-gray-400 pl-9 pr-9 py-2 text-sm rounded-full border border-transparent focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:bg-white transition"
               />
               <AnimatePresence>
                 {desktopSearch.length > 0 && (
@@ -759,41 +683,80 @@ const Navbar = ({ className = '' }) => {
               </AnimatePresence>
             </div>
 
-            <div className="relative" ref={accountRef}>
-              <motion.button
-                type="button"
-                onClick={toggleAccount}
-                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
-                  isAccountOpen || isAccountSection
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm shadow-indigo-500/10'
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.97 }}
-                aria-expanded={isAccountOpen}
-                aria-haspopup="true"
+            {/* Wishlist */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/wishlist"
+                className="relative inline-flex items-center justify-center rounded-md border border-pink-100 bg-pink-50 p-2 text-pink-600 hover:bg-pink-100 hover:border-pink-200 transition-colors"
+                aria-label="Wishlist"
               >
-                {user ? (
-                  <span className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm shadow-indigo-500/30">
+                <Heart className="h-4 w-4" />
+                <Badge count={wishlistCount} gradient="bg-gradient-to-br from-pink-500 to-rose-500" ring="ring-2 ring-white" />
+              </Link>
+            </motion.div>
+
+            {/* Cart */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/cart"
+                className="relative inline-flex items-center justify-center rounded-md border border-blue-100 bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 hover:border-blue-200 transition-colors"
+                aria-label="Cart"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <Badge count={cartCount} gradient="bg-gradient-to-br from-blue-500 to-indigo-500" ring="ring-2 ring-white" />
+              </Link>
+            </motion.div>
+
+            {/* Profile (logged-in) OR Account (guest) */}
+            <div className="relative" ref={accountRef}>
+              {user ? (
+                // ✅ Logged-in: ONLY the profile avatar, no text/chevron
+                <motion.button
+                  type="button"
+                  onClick={toggleAccount}
+                  className="relative inline-flex items-center justify-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-indigo-200 transition-all"
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-expanded={isAccountOpen}
+                  aria-haspopup="true"
+                  aria-label="Profile"
+                >
+                  <span className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white text-xs font-bold flex items-center justify-center shadow-md shadow-indigo-500/30">
                     {initials}
                   </span>
-                ) : (
+                  <span className="absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white" />
+                </motion.button>
+              ) : (
+                // Guest: full "Account" button with label + chevron
+                <motion.button
+                  type="button"
+                  onClick={toggleAccount}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                    isAccountOpen || isAccountSection
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm shadow-indigo-500/10'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  aria-expanded={isAccountOpen}
+                  aria-haspopup="true"
+                >
                   <span className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
                     <User className="h-3.5 w-3.5" />
                   </span>
-                )}
-                <span className="font-semibold">{user ? displayName.split(' ')[0] : 'Account'}</span>
-                <motion.svg
-                  className="h-3 w-3"
-                  animate={{ rotate: isAccountOpen ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </motion.svg>
-              </motion.button>
+                  <span className="font-semibold">Account</span>
+                  <motion.svg
+                    className="h-3 w-3"
+                    animate={{ rotate: isAccountOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </motion.svg>
+                </motion.button>
+              )}
 
               <AnimatePresence>
                 {isAccountOpen && (
@@ -811,10 +774,22 @@ const Navbar = ({ className = '' }) => {
                 )}
               </AnimatePresence>
             </div>
+          </div>
+        </nav>
+
+        {/* ================= MOBILE BAR (unchanged) ================= */}
+        <nav className="flex lg:hidden items-center justify-between gap-3 py-2">
+          <motion.div variants={logoVariants} initial="hidden" animate="visible">
+            <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
+              <span className="px-3 py-1 bg-blue-700 text-white text-xl font-bold rounded">A</span>
+              <span className="text-base font-semibold tracking-tighter">
+                <span className="font-bold text-blue-800">Style</span>
+                <span className="text-gray-900">Craft</span>
+              </span>
+            </Link>
           </motion.div>
 
-          {/* MOBILE: icons row */}
-          <div className="flex items-center gap-1.5 lg:hidden">
+          <div className="flex items-center gap-1.5">
             <motion.button
               className="relative inline-flex items-center justify-center rounded-md border border-indigo-100 bg-indigo-50 p-2 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-200 transition-colors"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -899,7 +874,7 @@ const Navbar = ({ className = '' }) => {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
-              <div className="relative py-5 mx-3">
+              <div className="relative py-5 mx-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <input
                   ref={mobileSearchRef}
@@ -932,7 +907,7 @@ const Navbar = ({ className = '' }) => {
           )}
         </AnimatePresence>
 
-        {/* Mobile menu */}
+        {/* Mobile menu (scrollable) */}
         <AnimatePresence>
           {isMobileOpen && (
             <motion.div
@@ -942,8 +917,7 @@ const Navbar = ({ className = '' }) => {
               animate="visible"
               exit="exit"
             >
-              <div className="flex flex-col gap-1 border-t border-gray-200 py-3">
-                {/* Home + About */}
+              <div className="flex flex-col gap-1 border-t border-gray-200 py-3 max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain">
                 {desktopLinksBefore.map((item, i) => {
                   const Icon = item.icon;
                   return (
@@ -968,7 +942,6 @@ const Navbar = ({ className = '' }) => {
                   );
                 })}
 
-                {/* Products Accordion */}
                 <div>
                   <motion.button
                     className={`flex w-full items-center justify-between rounded-md px-3 py-3 text-base font-medium transition-colors ${
@@ -1042,7 +1015,6 @@ const Navbar = ({ className = '' }) => {
                   </AnimatePresence>
                 </div>
 
-                {/* Account Accordion */}
                 <div>
                   <motion.button
                     className={`flex w-full items-center justify-between rounded-md px-3 py-3 text-base font-medium transition-colors ${
@@ -1090,7 +1062,6 @@ const Navbar = ({ className = '' }) => {
                   </AnimatePresence>
                 </div>
 
-                {/* Resources, Contact, Templates, Blog, Pricing */}
                 {[...desktopLinksAfter, ...mobileLinks].map((item, i) => {
                   const Icon = item.icon;
                   return (
@@ -1110,7 +1081,6 @@ const Navbar = ({ className = '' }) => {
                   );
                 })}
 
-                {/* Bottom CTA */}
                 <motion.div
                   className="mt-3 flex flex-col gap-3 border-t border-gray-200 pt-4"
                   variants={mobileItemVariants}
@@ -1159,7 +1129,7 @@ const Navbar = ({ className = '' }) => {
           )}
         </AnimatePresence>
       </div>
-    </motion.header>
+    </header>
   );
 };
 
