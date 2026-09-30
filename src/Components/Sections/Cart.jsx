@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,80 +19,109 @@ import {
   FaTag,
   FaCheckCircle,
 } from 'react-icons/fa';
+import {
+  readCart,
+  updateQty as updateQtyStore,
+  removeFromCart,
+  getCartChannel,
+} from '../../utils/cartStore';
+
+/* ---------- Normalize a Trending product into a cart item ---------- */
+const normalizeCartItem = (p) => ({
+  id: p.id,
+  name: p.name,
+  category: p.category || 'Girls',
+  slug:
+    p.slug ||
+    (p.category ? p.category.toLowerCase().replace(/\s+/g, '-') : 'products'),
+  price: p.price,
+  oldPrice: p.oldPrice ?? null,
+  image: p.image,
+  size: p.size || null,
+  color: p.color || null,
+  qty: p.quantity ?? p.qty ?? 1,
+  stock: p.stock ?? 99,
+});
+
+const loadItems = () => readCart().map(normalizeCartItem);
 
 /* ---------- Animation variants ---------- */
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
-
 const stagger = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
 };
-
 const itemVariants = {
   hidden: { opacity: 0, x: -20 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } },
-  exit: { opacity: 0, x: 40, height: 0, marginBottom: 0, transition: { duration: 0.3 } },
+  exit: { opacity: 0, x: 40, height: 0, marginBottom: 0, transition: { duration: 0.25 } },
 };
 
-/* ---------- Demo cart data (replace with your state/store) ---------- */
-const initialCart = [
-  {
-    id: 1,
-    name: 'Classic Denim Jacket',
-    category: 'Men',
-    slug: 'mens',
-    price: 2499,
-    oldPrice: 3499,
-    image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=400&q=80',
-    size: 'M',
-    color: 'Indigo',
-    qty: 1,
-    stock: 12,
-  },
-  {
-    id: 2,
-    name: 'Floral Summer Dress',
-    category: 'Women',
-    slug: 'womens',
-    price: 1799,
-    oldPrice: 2299,
-    image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&q=80',
-    size: 'S',
-    color: 'Rose',
-    qty: 2,
-    stock: 5,
-  },
-  {
-    id: 3,
-    name: 'Kids Cotton T-Shirt',
-    category: 'Kids',
-    slug: 'kids',
-    price: 599,
-    oldPrice: null,
-    image: 'https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=400&q=80',
-    size: '4Y',
-    color: 'White',
-    qty: 3,
-    stock: 20,
-  },
-];
-
+/* ================================================================
+   Cart
+   ================================================================ */
 const Cart = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState(initialCart);
+
+  const [items, setItems] = useState(loadItems);
   const [coupon, setCoupon] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
+  /* ---------- Live subscribe: custom event + broadcast + storage ---------- */
+  useEffect(() => {
+    const applyPayload = (payload) => {
+      const fresh = Array.isArray(payload) ? payload : readCart();
+      setItems(fresh.map(normalizeCartItem));
+    };
+
+    const onCustom = (e) => applyPayload(e?.detail);
+    const onStorage = (e) => {
+      if (e.key !== 'cart') return;
+      applyPayload(readCart());
+    };
+
+    window.addEventListener('cart:updated', onCustom);
+    window.addEventListener('storage', onStorage);
+
+    const channel = getCartChannel();
+    const onBroadcast = (msg) => {
+      if (msg?.type === 'cart:updated') applyPayload(msg.detail);
+    };
+    channel?.addEventListener('message', onBroadcast);
+
+    // In case the event fired before we subscribed
+    applyPayload(readCart());
+
+    return () => {
+      window.removeEventListener('cart:updated', onCustom);
+      window.removeEventListener('storage', onStorage);
+      channel?.removeEventListener('message', onBroadcast);
+    };
+  }, []);
+
+  /* ---------- Handlers — go through the store ---------- */
+  const handleUpdateQty = useCallback((id, delta) => {
+    updateQtyStore(id, delta);
+  }, []);
+
+  const handleRemove = useCallback((id) => {
+    removeFromCart(id);
+  }, []);
+
   /* ---------- Derived values ---------- */
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const savings = items.reduce(
-    (sum, i) => sum + (i.oldPrice ? (i.oldPrice - i.price) * i.qty : 0),
-    0
-  );
+  const { subtotal, savings } = useMemo(() => {
+    let sub = 0;
+    let sav = 0;
+    for (const i of items) {
+      sub += i.price * i.qty;
+      if (i.oldPrice) sav += (i.oldPrice - i.price) * i.qty;
+    }
+    return { subtotal: sub, savings: sav };
+  }, [items]);
 
   const COUPONS = { SAVE10: 10, WELCOME15: 15, FLAT200: 'flat200' };
   const discount = appliedCoupon
@@ -100,21 +134,6 @@ const Cart = () => {
   const tax = Math.round((subtotal - discount) * 0.05);
   const total = subtotal - discount + shipping + tax;
 
-  /* ---------- Handlers ---------- */
-  const updateQty = (id, delta) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? { ...i, qty: Math.max(1, Math.min(i.stock, i.qty + delta)) }
-          : i
-      )
-    );
-  };
-
-  const removeItem = (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
   const applyCoupon = (e) => {
     e.preventDefault();
     const code = coupon.trim().toUpperCase();
@@ -123,11 +142,9 @@ const Cart = () => {
       setAppliedCoupon(code);
       setCouponError('');
       setCoupon('');
-      console.log('✅ Coupon applied:', code);
     } else {
       setAppliedCoupon(null);
       setCouponError('Invalid coupon code');
-      console.log('❌ Invalid coupon:', code);
     }
   };
 
@@ -136,16 +153,7 @@ const Cart = () => {
     setCouponError('');
   };
 
-  const handleCheckout = () => {
-    console.log('🛒 Checkout initiated:');
-    console.log('  Items:', items);
-    console.log('  Subtotal:', subtotal);
-    console.log('  Discount:', discount);
-    console.log('  Shipping:', shipping);
-    console.log('  Tax:', tax);
-    console.log('  Total:', total);
-    navigate('/checkout');
-  };
+  const handleCheckout = () => navigate('/checkout');
 
   /* ---------- Empty state ---------- */
   if (items.length === 0) {
@@ -233,11 +241,10 @@ const Cart = () => {
               variants={stagger}
               className="space-y-4"
             >
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {items.map((item) => (
                   <motion.li
                     key={item.id}
-                    layout
                     variants={itemVariants}
                     initial="hidden"
                     animate="visible"
@@ -245,7 +252,6 @@ const Cart = () => {
                     className="group bg-white rounded-2xl border border-gray-100 hover:border-indigo-200 shadow-sm hover:shadow-lg hover:shadow-indigo-100/50 transition-all duration-300 ease-in overflow-hidden"
                   >
                     <div className="flex flex-col sm:flex-row gap-4 p-4">
-                      {/* Image → product category page */}
                       <Link
                         to={`/products/${item.slug}`}
                         className="shrink-0 w-full sm:w-28 h-40 sm:h-28 rounded-xl overflow-hidden bg-gray-100"
@@ -253,11 +259,11 @@ const Cart = () => {
                         <img
                           src={item.image}
                           alt={item.name}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                         />
                       </Link>
 
-                      {/* Details */}
                       <div className="flex-1 min-w-0 flex flex-col">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -268,16 +274,16 @@ const Cart = () => {
                               {item.name}
                             </Link>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              {item.category} · Size {item.size} · {item.color}
+                              {item.category}
+                              {item.size && ` · Size ${item.size}`}
+                              {item.color && ` · ${item.color}`}
                             </p>
                           </div>
 
-                          {/* Remove */}
                           <motion.button
                             whileHover={{ scale: 1.15 }}
                             whileTap={{ scale: 0.9 }}
-                            transition={{ duration: 0.3, ease: 'easeIn' }}
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => handleRemove(item.id)}
                             aria-label={`Remove ${item.name}`}
                             className="shrink-0 w-8 h-8 rounded-full bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-500 flex items-center justify-center transition-colors duration-300 ease-in cursor-pointer"
                           >
@@ -285,9 +291,7 @@ const Cart = () => {
                           </motion.button>
                         </div>
 
-                        {/* Price + qty row */}
                         <div className="mt-3 sm:mt-auto flex flex-wrap items-center justify-between gap-3">
-                          {/* Price */}
                           <div className="flex items-baseline gap-2">
                             <span className="text-base font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                               ₹{item.price.toLocaleString('en-IN')}
@@ -299,11 +303,10 @@ const Cart = () => {
                             )}
                           </div>
 
-                          {/* Qty stepper */}
                           <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
                             <motion.button
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => updateQty(item.id, -1)}
+                              onClick={() => handleUpdateQty(item.id, -1)}
                               disabled={item.qty <= 1}
                               aria-label="Decrease quantity"
                               className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-300 ease-in cursor-pointer"
@@ -315,7 +318,7 @@ const Cart = () => {
                             </span>
                             <motion.button
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => updateQty(item.id, 1)}
+                              onClick={() => handleUpdateQty(item.id, 1)}
                               disabled={item.qty >= item.stock}
                               aria-label="Increase quantity"
                               className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-300 ease-in cursor-pointer"
@@ -324,7 +327,6 @@ const Cart = () => {
                             </motion.button>
                           </div>
 
-                          {/* Line total */}
                           <div className="text-right">
                             <p className="text-sm font-semibold text-gray-900">
                               ₹{(item.price * item.qty).toLocaleString('en-IN')}
@@ -343,7 +345,7 @@ const Cart = () => {
               </AnimatePresence>
             </motion.ul>
 
-            {/* Trust badges row — each clickable */}
+            {/* Trust badges */}
             <motion.div
               initial="hidden"
               animate="visible"
@@ -373,7 +375,7 @@ const Cart = () => {
               initial="hidden"
               animate="visible"
               variants={fadeInUp}
-              className="lg:sticky lg:top-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
+              className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
             >
               <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Order Summary
@@ -416,7 +418,6 @@ const Cart = () => {
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
-                      transition={{ duration: 0.3, ease: 'easeIn' }}
                       type="submit"
                       className="rounded-lg bg-gray-900 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ease-in cursor-pointer"
                     >
@@ -506,7 +507,6 @@ const Cart = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.3, ease: 'easeIn' }}
                 onClick={handleCheckout}
                 className="group/btn relative mt-5 w-full inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-purple-600 hover:to-rose-500 transition-all duration-500 ease-in shadow-md hover:shadow-lg hover:shadow-indigo-500/40 cursor-pointer overflow-hidden"
               >
@@ -515,7 +515,6 @@ const Cart = () => {
                 <FaArrowRight className="relative w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-1" />
               </motion.button>
 
-              {/* Secure note */}
               <p className="mt-3 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
                 <FaShieldAlt className="w-3 h-3" />
                 Secure 256-bit SSL encrypted checkout
