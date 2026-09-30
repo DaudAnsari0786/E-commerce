@@ -1,14 +1,9 @@
 /* ================================================================
    Shared cart store
-   ----------------------------------------------------------------
-   - Module-level cache → instant reads, no JSON.parse per render
-   - Debounced writes → one localStorage hit per burst
-   - Fires `cart:updated` + BroadcastChannel on every change
    ================================================================ */
 
 let _cartCache = null;
 
-/* ---------- Read ---------- */
 export const readCart = () => {
   if (_cartCache) return _cartCache;
   try {
@@ -25,7 +20,6 @@ export const invalidateCache = () => {
   _cartCache = null;
 };
 
-/* ---------- BroadcastChannel ---------- */
 const channel =
   typeof window !== 'undefined' && 'BroadcastChannel' in window
     ? new BroadcastChannel('stylecraft-cart')
@@ -33,7 +27,6 @@ const channel =
 
 export const getCartChannel = () => channel;
 
-/* ---------- Notify ---------- */
 const notify = (payload) => {
   _cartCache = payload;
   try {
@@ -42,7 +35,6 @@ const notify = (payload) => {
   } catch {}
 };
 
-/* ---------- Debounced write + notify ---------- */
 let _writeScheduled = false;
 let _pending = null;
 
@@ -61,11 +53,9 @@ const scheduleWrite = () => {
     notify(payload);
   };
 
-  // Microtask → fires before the next paint (feels instant)
   Promise.resolve().then(flush);
 };
 
-/* ---------- Mutators ---------- */
 export const setCart = (next) => {
   _cartCache = Array.isArray(next) ? next : [];
   scheduleWrite();
@@ -112,4 +102,31 @@ export const clearCart = () => {
   _cartCache = [];
   scheduleWrite();
   return _cartCache;
+};
+
+export const subscribeCart = (onChange) => {
+  const handler = (payload) => {
+    const fresh = Array.isArray(payload) ? payload : readCart();
+    onChange(fresh);
+  };
+
+  const onCustom = (e) => handler(e?.detail);
+  const onStorage = (e) => {
+    if (e.key !== 'cart') return;
+    invalidateCache();
+    handler(readCart());
+  };
+  const onBroadcast = (msg) => {
+    if (msg?.type === 'cart:updated') handler(msg.detail);
+  };
+
+  window.addEventListener('cart:updated', onCustom);
+  window.addEventListener('storage', onStorage);
+  channel?.addEventListener('message', onBroadcast);
+
+  return () => {
+    window.removeEventListener('cart:updated', onCustom);
+    window.removeEventListener('storage', onStorage);
+    channel?.removeEventListener('message', onBroadcast);
+  };
 };

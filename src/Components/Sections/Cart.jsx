@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,32 +14,8 @@ import {
   FaTag,
   FaCheckCircle,
 } from 'react-icons/fa';
-import {
-  readCart,
-  updateQty as updateQtyStore,
-  removeFromCart,
-  getCartChannel,
-} from '../../utils/cartStore';
-
-/* ---------- Normalize a Trending product into a cart item ---------- */
-const normalizeCartItem = (p) => ({
-  id: p.id,
-  name: p.name,
-  category: p.category || 'Girls',
-  slug:
-    p.slug ||
-    (p.category ? p.category.toLowerCase().replace(/\s+/g, '-') : 'products'),
-  price: p.price,
-  oldPrice: p.oldPrice ?? null,
-  image: p.image,
-  size: p.size || null,
-  color: p.color || null,
-  qty: p.quantity ?? p.qty ?? 1,
-  stock: p.stock ?? 99,
-});
-
-const loadItems = () => readCart().map(normalizeCartItem);
-
+import { useCartAutoReload } from '../../hooks/useCartAutoReload';
+import { updateQty as updateQtyStore, removeFromCart } from '../../utils/cartStore';
 /* ---------- Animation variants ---------- */
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
@@ -61,49 +32,19 @@ const itemVariants = {
 };
 
 /* ================================================================
-   Cart
+   Cart page
    ================================================================ */
 const Cart = () => {
   const navigate = useNavigate();
 
-  const [items, setItems] = useState(loadItems);
+  // 🟢 Full auto-reload — pulls fresh data on every cart change
+  const { items } = useCartAutoReload();
+
   const [coupon, setCoupon] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
-  /* ---------- Live subscribe: custom event + broadcast + storage ---------- */
-  useEffect(() => {
-    const applyPayload = (payload) => {
-      const fresh = Array.isArray(payload) ? payload : readCart();
-      setItems(fresh.map(normalizeCartItem));
-    };
-
-    const onCustom = (e) => applyPayload(e?.detail);
-    const onStorage = (e) => {
-      if (e.key !== 'cart') return;
-      applyPayload(readCart());
-    };
-
-    window.addEventListener('cart:updated', onCustom);
-    window.addEventListener('storage', onStorage);
-
-    const channel = getCartChannel();
-    const onBroadcast = (msg) => {
-      if (msg?.type === 'cart:updated') applyPayload(msg.detail);
-    };
-    channel?.addEventListener('message', onBroadcast);
-
-    // In case the event fired before we subscribed
-    applyPayload(readCart());
-
-    return () => {
-      window.removeEventListener('cart:updated', onCustom);
-      window.removeEventListener('storage', onStorage);
-      channel?.removeEventListener('message', onBroadcast);
-    };
-  }, []);
-
-  /* ---------- Handlers — go through the store ---------- */
+  /* ---------- Handlers ---------- */
   const handleUpdateQty = useCallback((id, delta) => {
     updateQtyStore(id, delta);
   }, []);
@@ -112,7 +53,7 @@ const Cart = () => {
     removeFromCart(id);
   }, []);
 
-  /* ---------- Derived values ---------- */
+  /* ---------- Derived ---------- */
   const { subtotal, savings } = useMemo(() => {
     let sub = 0;
     let sav = 0;
@@ -174,10 +115,7 @@ const Cart = () => {
             <FaShoppingBag className="w-10 h-10 text-indigo-600" />
           </motion.div>
 
-          <motion.h2
-            variants={fadeInUp}
-            className="text-2xl font-bold text-gray-900 mb-2"
-          >
+          <motion.h2 variants={fadeInUp} className="text-2xl font-bold text-gray-900 mb-2">
             Your cart is empty
           </motion.h2>
           <motion.p variants={fadeInUp} className="text-sm text-gray-500 mb-6">
@@ -199,17 +137,12 @@ const Cart = () => {
     );
   }
 
-  /* ---------- Main cart ---------- */
+  /* ---------- Main ---------- */
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-rose-50 py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="mb-8"
-        >
+        <motion.div initial="hidden" animate="visible" variants={stagger} className="mb-8">
           <motion.div variants={fadeInUp}>
             <Link
               to="/products"
@@ -233,14 +166,9 @@ const Cart = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* ---------- Left: Cart items ---------- */}
+          {/* Left — items */}
           <div className="lg:col-span-8">
-            <motion.ul
-              initial="hidden"
-              animate="visible"
-              variants={stagger}
-              className="space-y-4"
-            >
+            <motion.ul initial="hidden" animate="visible" variants={stagger} className="space-y-4">
               <AnimatePresence initial={false}>
                 {items.map((item) => (
                   <motion.li
@@ -369,7 +297,7 @@ const Cart = () => {
             </motion.div>
           </div>
 
-          {/* ---------- Right: Order summary ---------- */}
+          {/* Right — summary */}
           <div className="lg:col-span-4">
             <motion.div
               initial="hidden"
@@ -377,9 +305,7 @@ const Cart = () => {
               variants={fadeInUp}
               className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Order Summary
-              </h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
 
               {/* Coupon */}
               <div className="mb-5">
@@ -426,9 +352,7 @@ const Cart = () => {
                   </form>
                 )}
                 {couponError && (
-                  <p className="mt-1.5 text-[11px] font-medium text-red-500">
-                    {couponError}
-                  </p>
+                  <p className="mt-1.5 text-[11px] font-medium text-red-500">{couponError}</p>
                 )}
                 {!appliedCoupon && !couponError && (
                   <p className="mt-1.5 text-[11px] text-gray-400">
@@ -451,29 +375,21 @@ const Cart = () => {
                 {savings > 0 && (
                   <div className="flex justify-between text-emerald-600">
                     <dt>You save</dt>
-                    <dd className="font-medium">
-                      −₹{savings.toLocaleString('en-IN')}
-                    </dd>
+                    <dd className="font-medium">−₹{savings.toLocaleString('en-IN')}</dd>
                   </div>
                 )}
 
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600">
                     <dt>Coupon discount</dt>
-                    <dd className="font-medium">
-                      −₹{discount.toLocaleString('en-IN')}
-                    </dd>
+                    <dd className="font-medium">−₹{discount.toLocaleString('en-IN')}</dd>
                   </div>
                 )}
 
                 <div className="flex justify-between text-gray-600">
                   <dt>Shipping</dt>
                   <dd className="font-medium text-gray-900">
-                    {shipping === 0 ? (
-                      <span className="text-emerald-600">Free</span>
-                    ) : (
-                      `₹${shipping}`
-                    )}
+                    {shipping === 0 ? <span className="text-emerald-600">Free</span> : `₹${shipping}`}
                   </dd>
                 </div>
 
@@ -492,7 +408,6 @@ const Cart = () => {
                 </div>
               </dl>
 
-              {/* Free shipping progress */}
               {shipping > 0 && (
                 <div className="mt-4 rounded-lg bg-indigo-50 px-3 py-2.5 text-xs text-indigo-700">
                   Add{' '}
@@ -503,7 +418,6 @@ const Cart = () => {
                 </div>
               )}
 
-              {/* Checkout */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
