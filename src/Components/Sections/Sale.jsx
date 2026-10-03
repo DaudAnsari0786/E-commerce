@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Star, Heart, ShoppingCart, Tag, Sparkles } from 'lucide-react';
+import { ArrowRight, Star, Heart, ShoppingCart, Tag, Sparkles, Check } from 'lucide-react';
 import products from '../../Product.js';
+
+// 🔥 Shared stores — fire events the Navbar listens to
+import { addToCart as addToCartStore } from '../../utils/cartStore';
+import { toggleWishlist as toggleWishlistStore } from '../../utils/wishlistStore';
+import { useWishlistAutoReload } from '../../hooks/useWishlistAutoReload';
 
 /* ============================== Animation Variants ============================== */
 const fadeInUp = {
@@ -19,12 +24,24 @@ const staggerContainer = {
 };
 
 /* ============================== Product Card ============================== */
-const ProductCard = ({ product, wishlist, toggleWishlist }) => {
-  const isWishlisted = wishlist.some((item) => item.id === product.id);
+const ProductCard = memo(function ProductCard({
+  product,
+  isWishlisted,
+  onWishlist,
+  onAddToCart,
+}) {
+  const [justAdded, setJustAdded] = useState(false);
 
   const discount = product.oldPrice
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : 0;
+
+  const handleAdd = useCallback(() => {
+    onAddToCart(product);
+    setJustAdded(true);
+    window.clearTimeout(handleAdd._t);
+    handleAdd._t = window.setTimeout(() => setJustAdded(false), 1200);
+  }, [product, onAddToCart]);
 
   return (
     <motion.div
@@ -32,7 +49,7 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
       whileHover={{ y: -8, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-indigo-200/40 border border-gray-100 hover:border-indigo-200 transition-all flex flex-col cursor-pointer"
+      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-indigo-200/40 border border-gray-100 hover:border-indigo-200 transition-all flex flex-col"
     >
       {/* Image */}
       <Link to={`/shop/${product.category}`} className="block relative overflow-hidden">
@@ -44,25 +61,23 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
             className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out"
           />
 
-          {/* Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-          {/* Discount badge */}
           {discount > 0 && (
             <span className="absolute top-2.5 left-2.5 px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-full text-white bg-gradient-to-r from-rose-500 to-pink-500 shadow-md group-hover:scale-110 transition-transform duration-300">
               -{discount}%
             </span>
           )}
 
-          {/* Wishlist */}
+          {/* ❤️ Wishlist — fires wishlist:updated */}
           <button
             type="button"
-            onClick={(e) => toggleWishlist(e, product)}
+            onClick={(e) => onWishlist(e, product)}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            className={`absolute top-2.5 right-2.5 w-9 h-9 rounded-full backdrop-blur flex items-center justify-center shadow-md transition-all duration-300 ${
+            className={`absolute top-2.5 right-2.5 w-9 h-9 rounded-full backdrop-blur flex items-center justify-center shadow-md transition-all duration-300 cursor-pointer ${
               isWishlisted
                 ? 'bg-rose-500 text-white opacity-100 scale-110'
-                : 'bg-white/90 text-gray-500 hover:bg-rose-500 hover:text-white opacity-0 group-hover:opacity-100'
+                : 'bg-white/90 text-gray-500 hover:bg-rose-500 hover:text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
             }`}
           >
             <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -79,7 +94,6 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           </h3>
         </Link>
 
-        {/* Rating */}
         <div className="flex items-center gap-1 mt-1.5 mb-2">
           <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
           <span className="text-[10px] sm:text-xs text-gray-500">
@@ -87,7 +101,6 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           </span>
         </div>
 
-        {/* Price */}
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-sm sm:text-base font-bold text-indigo-600">
             ₹{product.price.toLocaleString('en-IN')}
@@ -99,45 +112,48 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           )}
         </div>
 
-        {/* ✅ Buy Now Button — Simple CSS */}
+        {/* ✅ Add To Cart — fires cart:updated */}
         <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-          <Link to="/cart" className="buy-now-btn">
-            <ShoppingCart className="buy-now-icon" />
-            <span className="buy-now-label">Buy Now</span>
-          </Link>
+          <button
+            type="button"
+            onClick={handleAdd}
+            aria-label={`Add ${product.name} to cart`}
+            className={`buy-now-btn w-full cursor-pointer ${justAdded ? 'is-added' : ''}`}
+          >
+            <span className="relative z-10 inline-flex items-center justify-center gap-2">
+              {justAdded ? (
+                <>
+                  <Check className="w-4 h-4 buy-now-icon" />
+                  <span className="buy-now-label">Added to Cart</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 buy-now-icon" />
+                  <span className="buy-now-label">Add To Cart</span>
+                </>
+              )}
+            </span>
+          </button>
         </motion.div>
       </div>
     </motion.div>
   );
-};
+});
 
 /* ============================== Sale Page ============================== */
 const Sale = () => {
-  // ✅ Shared wishlist synced with localStorage
-  const [wishlist, setWishlist] = useState(() => {
-    try {
-      const saved = localStorage.getItem('wishlist');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // ✅ Live wishlist from the shared store (auto-updates cross-tab)
+  const { items: wishlist } = useWishlistAutoReload();
 
-  useEffect(() => {
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-    window.dispatchEvent(new Event('wishlist:updated'));
-  }, [wishlist]);
-
-  const toggleWishlist = (e, product) => {
+  const handleWishlist = useCallback((e, product) => {
     e.preventDefault();
     e.stopPropagation();
-    setWishlist((prev) => {
-      const exists = prev.find((item) => item.id === product.id);
-      return exists
-        ? prev.filter((item) => item.id !== product.id)
-        : [...prev, product];
-    });
-  };
+    toggleWishlistStore(product);
+  }, []);
+
+  const handleAddToCart = useCallback((product) => {
+    addToCartStore(product);
+  }, []);
 
   const saleItems = products.filter((p) => p.badge === 'Sale').slice(0, 8);
 
@@ -197,8 +213,9 @@ const Sale = () => {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  wishlist={wishlist}
-                  toggleWishlist={toggleWishlist}
+                  isWishlisted={wishlist.some((i) => i.id === product.id)}
+                  onWishlist={handleWishlist}
+                  onAddToCart={handleAddToCart}
                 />
               ))}
             </motion.div>
@@ -225,7 +242,7 @@ const Sale = () => {
             <motion.div whileTap={{ scale: 0.96 }} className="inline-block">
               <Link
                 to="/products"
-                className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-[length:200%_100%] bg-left hover:bg-right hover:from-purple-600 hover:to-rose-500 text-white font-semibold py-3 px-6 rounded-full transition-all duration-500 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-purple-500/40 active:scale-[0.97] overflow-hidden"
+                className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-purple-600 hover:to-rose-500 text-white font-semibold py-3 px-6 rounded-full transition-all duration-500 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-purple-500/40 overflow-hidden"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
                 <span className="relative">Browse All Products</span>
@@ -246,7 +263,6 @@ const Sale = () => {
             viewport={{ once: true }}
             className="relative bg-gradient-to-br from-indigo-700 via-purple-700 to-rose-600 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-500/20"
           >
-            {/* Decorative circles */}
             <motion.div
               animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.25, 0.15] }}
               transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
@@ -287,7 +303,7 @@ const Sale = () => {
                 <motion.div whileTap={{ scale: 0.96 }} className="inline-block">
                   <Link
                     to="/products/sale"
-                    className="group relative inline-flex items-center gap-2 px-6 sm:px-8 py-3 bg-white text-indigo-700 text-sm sm:text-base font-bold rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 active:scale-[0.97] overflow-hidden"
+                    className="group relative inline-flex items-center gap-2 px-6 sm:px-8 py-3 bg-white text-indigo-700 text-sm sm:text-base font-bold rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 overflow-hidden"
                   >
                     <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-indigo-100 to-transparent" />
                     <span className="relative">Shop the Sale</span>

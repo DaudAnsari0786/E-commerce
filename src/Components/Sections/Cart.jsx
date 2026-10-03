@@ -13,9 +13,37 @@ import {
   FaUndoAlt,
   FaTag,
   FaCheckCircle,
+  FaBolt,
+  FaEye,
 } from 'react-icons/fa';
 import { useCartAutoReload } from '../../hooks/useCartAutoReload';
 import { updateQty as updateQtyStore, removeFromCart } from '../../utils/cartStore';
+
+/* ✅ Pre-create a motion-enabled Link so we can use it everywhere */
+const MotionLink = motion(Link);
+
+/* ---------- Helpers ---------- */
+const buildProductUrl = (item) => {
+  const cat = (item.category || '').toString().toLowerCase().trim();
+  return cat ? `/products/${cat}/${item.id}` : '/products';
+};
+
+/* Shared styling — guarantees both buttons are identical in size */
+const BTN_BASE = `
+  group/btn inline-flex items-center justify-center gap-1.5 sm:gap-2
+  w-full h-10 sm:h-11 px-3 sm:px-4 rounded-lg
+  text-xs sm:text-sm font-semibold text-white cursor-pointer
+  bg-[linear-gradient(90deg,#111827,#312e81,#111827)]
+  bg-[length:200%_100%] bg-left
+  hover:bg-[linear-gradient(90deg,#4f46e5,#9333ea,#4f46e5)]
+  hover:bg-right
+  active:bg-[linear-gradient(90deg,#111827,#312e81,#111827)]
+  border border-[#1e293b] hover:border-[#334155]
+  shadow-sm hover:shadow-md hover:shadow-slate-900/40
+  transition-all duration-500
+  whitespace-nowrap no-underline
+`;
+
 /* ---------- Animation variants ---------- */
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
@@ -35,9 +63,6 @@ const itemVariants = {
    Cart page
    ================================================================ */
 const Cart = () => {
-  const navigate = useNavigate();
-
-  // 🟢 Full auto-reload — pulls fresh data on every cart change
   const { items } = useCartAutoReload();
 
   const [coupon, setCoupon] = useState('');
@@ -52,6 +77,15 @@ const Cart = () => {
   const handleRemove = useCallback((id) => {
     removeFromCart(id);
   }, []);
+
+  /* Build "Buy Now" state so <Link> can carry it */
+  const buyNowState = useCallback(
+    (item) => ({
+      buyNowItemId: item.id,
+      buyNowProduct: item,
+    }),
+    []
+  );
 
   /* ---------- Derived ---------- */
   const { subtotal, savings } = useMemo(() => {
@@ -93,8 +127,6 @@ const Cart = () => {
     setAppliedCoupon(null);
     setCouponError('');
   };
-
-  const handleCheckout = () => navigate('/checkout');
 
   /* ---------- Empty state ---------- */
   if (items.length === 0) {
@@ -139,10 +171,10 @@ const Cart = () => {
 
   /* ---------- Main ---------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-rose-50 py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-rose-50 py-6 sm:py-10 lg:py-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div initial="hidden" animate="visible" variants={stagger} className="mb-8">
+        <motion.div initial="hidden" animate="visible" variants={stagger} className="mb-6 sm:mb-8">
           <motion.div variants={fadeInUp}>
             <Link
               to="/products"
@@ -155,20 +187,20 @@ const Cart = () => {
 
           <motion.h1
             variants={fadeInUp}
-            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 flex items-center gap-3"
+            className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-900 flex items-center flex-wrap gap-2 sm:gap-3"
           >
-            <FaShoppingBag className="w-6 h-6 text-indigo-600" />
+            <FaShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
             Shopping Cart
-            <span className="text-sm font-medium text-gray-500">
+            <span className="text-xs sm:text-sm font-medium text-gray-500">
               ({items.length} {items.length === 1 ? 'item' : 'items'})
             </span>
           </motion.h1>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* Left — items */}
-          <div className="lg:col-span-8">
-            <motion.ul initial="hidden" animate="visible" variants={stagger} className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-8">
+          {/* ---------- Left: items ---------- */}
+          <div className="lg:col-span-8 min-w-0">
+            <motion.ul initial="hidden" animate="visible" variants={stagger} className="space-y-3 sm:space-y-4">
               <AnimatePresence initial={false}>
                 {items.map((item) => (
                   <motion.li
@@ -179,10 +211,11 @@ const Cart = () => {
                     exit="exit"
                     className="group bg-white rounded-2xl border border-gray-100 hover:border-indigo-200 shadow-sm hover:shadow-lg hover:shadow-indigo-100/50 transition-all duration-300 ease-in overflow-hidden"
                   >
-                    <div className="flex flex-col sm:flex-row gap-4 p-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4">
+                      {/* Product image */}
                       <Link
-                        to={`/products/${item.slug}`}
-                        className="shrink-0 w-full sm:w-28 h-40 sm:h-28 rounded-xl overflow-hidden bg-gray-100"
+                        to={buildProductUrl(item)}
+                        className="shrink-0 w-full sm:w-28 aspect-square sm:aspect-auto sm:h-28 rounded-xl overflow-hidden bg-gray-100"
                       >
                         <img
                           src={item.image}
@@ -193,15 +226,16 @@ const Cart = () => {
                       </Link>
 
                       <div className="flex-1 min-w-0 flex flex-col">
+                        {/* Title row */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <Link
-                              to={`/products/${item.slug}`}
-                              className="block text-base font-semibold text-gray-900 hover:text-indigo-600 transition-colors duration-300 ease-in truncate"
+                              to={buildProductUrl(item)}
+                              className="block text-sm sm:text-base font-semibold text-gray-900 hover:text-indigo-600 transition-colors duration-300 ease-in truncate"
                             >
                               {item.name}
                             </Link>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 truncate">
                               {item.category}
                               {item.size && ` · Size ${item.size}`}
                               {item.color && ` · ${item.color}`}
@@ -219,13 +253,14 @@ const Cart = () => {
                           </motion.button>
                         </div>
 
-                        <div className="mt-3 sm:mt-auto flex flex-wrap items-center justify-between gap-3">
+                        {/* Price + Qty + Line total */}
+                        <div className="mt-3 sm:mt-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-base font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                            <span className="text-sm sm:text-base font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                               ₹{item.price.toLocaleString('en-IN')}
                             </span>
                             {item.oldPrice && (
-                              <span className="text-xs text-gray-400 line-through">
+                              <span className="text-[11px] sm:text-xs text-gray-400 line-through">
                                 ₹{item.oldPrice.toLocaleString('en-IN')}
                               </span>
                             )}
@@ -241,7 +276,7 @@ const Cart = () => {
                             >
                               <FaMinus className="w-3 h-3" />
                             </motion.button>
-                            <span className="w-10 text-center text-sm font-semibold text-gray-900">
+                            <span className="w-9 sm:w-10 text-center text-sm font-semibold text-gray-900">
                               {item.qty}
                             </span>
                             <motion.button
@@ -256,15 +291,41 @@ const Cart = () => {
                           </div>
 
                           <div className="text-right">
-                            <p className="text-sm font-semibold text-gray-900">
+                            <p className="text-sm sm:text-base font-semibold text-gray-900">
                               ₹{(item.price * item.qty).toLocaleString('en-IN')}
                             </p>
                             {item.qty >= item.stock && (
-                              <p className="text-[11px] text-amber-600 mt-0.5">
+                              <p className="text-[10px] sm:text-[11px] text-amber-600 mt-0.5">
                                 Max stock reached
                               </p>
                             )}
                           </div>
+                        </div>
+
+                        {/* ✅ ACTION BUTTONS — equal width, both are motion(Link) */}
+                        <div className="mt-3 grid grid-cols-1 min-[400px]:grid-cols-2 gap-2 sm:gap-3">
+                          {/* ORDER NOW → navigates to /checkout with state */}
+                          <MotionLink
+                            to="/order"
+                            state={buyNowState(item)}
+                            whileTap={{ scale: 0.97 }}
+                            className={BTN_BASE}
+                          >
+                            <FaBolt className="w-3.5 h-3.5 text-amber-400 group-hover/btn:scale-110 transition-transform duration-200 shrink-0" />
+                            <span>Order Now</span>
+                            <FaArrowRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform duration-200 shrink-0" />
+                          </MotionLink>
+
+                          {/* VIEW DETAIL → /products/:category/:productId */}
+                          <MotionLink
+                            to={buildProductUrl(item)}
+                            whileTap={{ scale: 0.97 }}
+                            className={BTN_BASE}
+                          >
+                            <FaEye className="w-3.5 h-3.5 text-amber-400 group-hover/btn:scale-110 transition-transform duration-200 shrink-0" />
+                            <span>View Detail</span>
+                            <FaArrowRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform duration-200 shrink-0" />
+                          </MotionLink>
                         </div>
                       </div>
                     </div>
@@ -278,7 +339,7 @@ const Cart = () => {
               initial="hidden"
               animate="visible"
               variants={fadeInUp}
-              className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3"
+              className="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3"
             >
               {[
                 { icon: FaTruck, label: 'Free shipping over ₹1500', to: '/shipping' },
@@ -288,7 +349,7 @@ const Cart = () => {
                 <Link
                   key={label}
                   to={to}
-                  className="group flex items-center gap-2.5 rounded-xl bg-white border border-gray-100 px-4 py-3 text-xs font-medium text-gray-600 hover:border-indigo-200 hover:text-indigo-700 hover:shadow-sm transition-all duration-300 ease-in cursor-pointer"
+                  className="group flex items-center gap-2.5 rounded-xl bg-white border border-gray-100 px-3 sm:px-4 py-2.5 sm:py-3 text-[11px] sm:text-xs font-medium text-gray-600 hover:border-indigo-200 hover:text-indigo-700 hover:shadow-sm transition-all duration-300 ease-in cursor-pointer"
                 >
                   <Icon className="w-4 h-4 text-indigo-600 shrink-0 transition-transform duration-300 group-hover:scale-110" />
                   {label}
@@ -297,15 +358,15 @@ const Cart = () => {
             </motion.div>
           </div>
 
-          {/* Right — summary */}
-          <div className="lg:col-span-4">
+          {/* ---------- Right: summary ---------- */}
+          <div className="lg:col-span-4 min-w-0">
             <motion.div
               initial="hidden"
               animate="visible"
               variants={fadeInUp}
-              className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
+              className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 lg:p-6"
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
 
               {/* Coupon */}
               <div className="mb-5">
@@ -341,11 +402,12 @@ const Cart = () => {
                         }`}
                       />
                     </div>
+                    {/* Coupon form submit — MUST be a real <button type="submit"> */}
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       type="submit"
-                      className="rounded-lg bg-gray-900 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ease-in cursor-pointer"
+                      className="rounded-lg bg-gray-900 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ease-in cursor-pointer"
                     >
                       Apply
                     </motion.button>
@@ -418,16 +480,17 @@ const Cart = () => {
                 </div>
               )}
 
-              <motion.button
+              {/* ✅ Proceed to Checkout — now a motion(Link) */}
+              <MotionLink
+                to="/addresses"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleCheckout}
-                className="group/btn relative mt-5 w-full inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-purple-600 hover:to-rose-500 transition-all duration-500 ease-in shadow-md hover:shadow-lg hover:shadow-indigo-500/40 cursor-pointer overflow-hidden"
+                className="group/btn relative mt-5 w-full inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-purple-600 hover:to-rose-500 transition-all duration-500 ease-in shadow-md hover:shadow-lg hover:shadow-indigo-500/40 cursor-pointer overflow-hidden no-underline"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
                 <span className="relative">Proceed to Checkout</span>
                 <FaArrowRight className="relative w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-1" />
-              </motion.button>
+              </MotionLink>
 
               <p className="mt-3 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
                 <FaShieldAlt className="w-3 h-3" />

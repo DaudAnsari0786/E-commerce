@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaBox,
@@ -21,119 +21,65 @@ import {
   FaSignOutAlt,
   FaInfoCircle,
   FaShoppingBag,
+  FaSyncAlt,
+  FaExternalLinkAlt,
 } from 'react-icons/fa';
 import { useUser } from '../../context/UserContext';
+import { useOrdersAutoReload } from '../../hooks/useOrdersAutoReload';
+import { updateOrderStatus } from '../../utils/orderStore';
+
+/* ---------- Helpers ---------- */
+const buildProductUrl = (item) => {
+  if (!item) return '/products';
+  const cat = (item.category || '').toString().toLowerCase().trim();
+  return cat ? `/products/${cat}/${item.id}` : '/products';
+};
 
 /* ---------- Animation variants ---------- */
 const fadeInUp = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 };
-
 const stagger = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
 };
 
-/* ---------- Status meta (Updated with Dark Mode) ---------- */
+/* ---------- Status meta ---------- */
 const statusMeta = {
   Delivered: {
     label: 'Delivered',
     icon: FaCheckCircle,
     tile: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
-    badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-700/50',
+    badge:
+      'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-700/50',
     dot: 'bg-emerald-500',
   },
   Shipped: {
     label: 'Shipped',
     icon: FaTruck,
     tile: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300',
-    badge: 'bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:ring-indigo-700/50',
+    badge:
+      'bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:ring-indigo-700/50',
     dot: 'bg-indigo-500',
   },
   Processing: {
     label: 'Processing',
     icon: FaClock,
     tile: 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
-    badge: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-700/50',
+    badge:
+      'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-700/50',
     dot: 'bg-amber-500',
   },
   Cancelled: {
     label: 'Cancelled',
     icon: FaTimes,
     tile: 'bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
-    badge: 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-700/50',
+    badge:
+      'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-700/50',
     dot: 'bg-rose-500',
   },
 };
-
-/* ---------- Demo orders ---------- */
-const demoOrders = [
-  {
-    id: 'SC-2409-1042',
-    date: 'Sep 18, 2026',
-    deliveredOn: 'Sep 22, 2026',
-    total: 4820,
-    status: 'Delivered',
-    items: [
-      { name: 'Classic Denim Jacket', qty: 1, price: 2499, category: 'Men' },
-      { name: 'Kids Cotton T-Shirt', qty: 3, price: 599, category: 'Kids' },
-      { name: 'Floral Summer Dress', qty: 1, price: 1123, category: 'Women' },
-    ],
-    address: 'Vill. Rukmalpur Post Meerpur, Atrauliya — 223223',
-    payment: 'UPI • ****4821',
-  },
-  {
-    id: 'SC-2409-0987',
-    date: 'Sep 05, 2026',
-    deliveredOn: null,
-    total: 1899,
-    status: 'Shipped',
-    items: [
-      { name: 'Floral Summer Dress', qty: 1, price: 1899, category: 'Women' },
-    ],
-    address: '123 Fashion Ave, Sector 15, Noida — 201301',
-    payment: 'Visa • ****6472',
-  },
-  {
-    id: 'SC-2408-0751',
-    date: 'Aug 22, 2026',
-    deliveredOn: 'Aug 26, 2026',
-    total: 3450,
-    status: 'Delivered',
-    items: [
-      { name: 'Classic Denim Jacket', qty: 1, price: 2850, category: 'Men' },
-      { name: 'Girls Party Frock', qty: 1, price: 600, category: 'Girls' },
-    ],
-    address: 'Vill. Rukmalpur Post Meerpur, Atrauliya — 223223',
-    payment: 'Cash on delivery',
-  },
-  {
-    id: 'SC-2408-0612',
-    date: 'Aug 10, 2026',
-    deliveredOn: null,
-    total: 950,
-    status: 'Processing',
-    items: [
-      { name: 'Kids Cotton T-Shirt', qty: 1, price: 599, category: 'Kids' },
-      { name: 'Boys Cargo Shorts', qty: 1, price: 351, category: 'Kids' },
-    ],
-    address: '123 Fashion Ave, Sector 15, Noida — 201301',
-    payment: 'UPI • ****4821',
-  },
-  {
-    id: 'SC-2407-0321',
-    date: 'Jul 28, 2026',
-    deliveredOn: null,
-    total: 1240,
-    status: 'Cancelled',
-    items: [
-      { name: 'Girls Party Frock', qty: 2, price: 620, category: 'Girls' },
-    ],
-    address: 'Vill. Rukmalpur Post Meerpur, Atrauliya — 223223',
-    payment: 'Refunded to source',
-  },
-];
 
 /* ---------- Filter tabs ---------- */
 const filterTabs = [
@@ -147,33 +93,54 @@ const filterTabs = [
 /* ============================== Component ============================== */
 const Orders = () => {
   const navigate = useNavigate();
+  const { orderId } = useParams();
   const { user, logout } = useUser();
+
+  /* ✅ Auto-reloading orders from store */
+  const { orders, loading, reload } = useOrdersAutoReload();
 
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
+  /* ---------- Auth guard ---------- */
   useEffect(() => {
     if (!user) navigate('/');
   }, [user, navigate]);
 
-  if (!user) return null;
+  /* ---------- Auto-expand order from URL ---------- */
+  useEffect(() => {
+    if (!orderId || !orders.length) return;
+    const match = orders.find((o) => o.id === orderId);
+    if (match) {
+      setExpandedId(match.id);
+      const t = setTimeout(() => {
+        document
+          .getElementById(`order-${match.id}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [orderId, orders]);
 
-  /* ---------- Derived counts + filtered list ---------- */
-  const counts = useMemo(() => {
-    return {
-      all: demoOrders.length,
-      Processing: demoOrders.filter((o) => o.status === 'Processing').length,
-      Shipped: demoOrders.filter((o) => o.status === 'Shipped').length,
-      Delivered: demoOrders.filter((o) => o.status === 'Delivered').length,
-      Cancelled: demoOrders.filter((o) => o.status === 'Cancelled').length,
-    };
-  }, []);
+  /* ---------- Derived counts ---------- */
+  const counts = useMemo(
+    () => ({
+      all: orders.length,
+      Processing: orders.filter((o) => o.status === 'Processing').length,
+      Shipped: orders.filter((o) => o.status === 'Shipped').length,
+      Delivered: orders.filter((o) => o.status === 'Delivered').length,
+      Cancelled: orders.filter((o) => o.status === 'Cancelled').length,
+    }),
+    [orders]
+  );
 
   const filteredOrders = useMemo(() => {
     const byStatus =
-      activeFilter === 'all' ? demoOrders : demoOrders.filter((o) => o.status === activeFilter);
+      activeFilter === 'all'
+        ? orders
+        : orders.filter((o) => o.status === activeFilter);
 
     const q = search.trim().toLowerCase();
     if (!q) return byStatus;
@@ -182,31 +149,80 @@ const Orders = () => {
       if (o.id.toLowerCase().includes(q)) return true;
       return o.items.some((it) => it.name.toLowerCase().includes(q));
     });
-  }, [activeFilter, search]);
+  }, [orders, activeFilter, search]);
 
+  /* ---------- Handlers ---------- */
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const showFeedback = (text) => {
+  const showFeedback = useCallback((text) => {
     setFeedback(text);
-    setTimeout(() => setFeedback(null), 2500);
-  };
+    const t = setTimeout(() => setFeedback(null), 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleDownloadInvoice = (order) => {
-    console.log('📄 Download invoice for:', order.id);
-    showFeedback(`Invoice for ${order.id} — download started`);
+    const lines = [
+      `StyleCraft — Invoice`,
+      `----------------------------`,
+      `Order ID: ${order.id}`,
+      `Date: ${order.date}`,
+      `Payment: ${order.payment}`,
+      `Address: ${order.address}`,
+      ``,
+      `Items:`,
+      ...order.items.map(
+        (i) =>
+          `  • ${i.name} (${i.category}) x${i.qty} — ₹${(
+            i.price * i.qty
+          ).toLocaleString('en-IN')}`
+      ),
+      ``,
+      `Total: ₹${order.total.toLocaleString('en-IN')}`,
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${order.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showFeedback(`Invoice for ${order.id} — downloaded`);
   };
 
   const handleReorder = (order) => {
-    console.log('🔁 Reorder:', order.id);
-    showFeedback(`Items from ${order.id} added to cart`);
+    import('../../utils/cartStore')
+      .then(({ addToCart }) => {
+        order.items.forEach((it) =>
+          addToCart({ ...it, quantity: it.qty ?? 1 })
+        );
+        showFeedback(`${order.items.length} item(s) added to cart`);
+      })
+      .catch((e) => {
+        console.error(e);
+        showFeedback('Could not re-add items');
+      });
+  };
+
+  const handleCancelOrder = (order) => {
+    updateOrderStatus(order.id, 'Cancelled');
+    showFeedback(`${order.id} cancelled`);
   };
 
   const toggleExpand = (id) => {
-    setExpandedId((cur) => (cur === id ? null : id));
+    const next = expandedId === id ? null : id;
+    setExpandedId(next);
+    navigate(next ? `/orders/${next}` : '/orders', { replace: false });
   };
+
+  const handleManualRefresh = () => {
+    reload();
+    showFeedback('Orders refreshed');
+  };
+
+  if (!user) return null;
 
   const initials = (user.name || 'U')
     .split(' ')
@@ -218,7 +234,7 @@ const Orders = () => {
   /* ---------- Render ---------- */
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-rose-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-300">
-      {/* ---------- Hero header ---------- */}
+      {/* ---------- Hero ---------- */}
       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-500">
         <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
@@ -233,7 +249,9 @@ const Orders = () => {
               to="/"
               className="group inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors duration-200 ease-in"
             >
-              <span className="transition-transform duration-200 group-hover:-translate-x-1">←</span>
+              <span className="transition-transform duration-200 group-hover:-translate-x-1">
+                ←
+              </span>
               Back to home
             </Link>
           </motion.div>
@@ -258,9 +276,28 @@ const Orders = () => {
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-xl bg-white/15 backdrop-blur border border-white/25 px-4 py-2.5 text-sm font-semibold">
-              <FaShoppingBag className="w-3.5 h-3.5" />
-              {counts.all} total orders
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                disabled={loading}
+                className="group inline-flex items-center gap-2 rounded-xl bg-white/15 backdrop-blur border border-white/25 px-3.5 py-2.5 text-sm font-semibold hover:bg-white/25 transition-colors disabled:opacity-60 cursor-pointer"
+                aria-label="Refresh orders"
+              >
+                <FaSyncAlt
+                  className={`w-3.5 h-3.5 ${
+                    loading
+                      ? 'animate-spin'
+                      : 'group-hover:rotate-180 transition-transform duration-500'
+                  }`}
+                />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+
+              <div className="inline-flex items-center gap-2 rounded-xl bg-white/15 backdrop-blur border border-white/25 px-4 py-2.5 text-sm font-semibold">
+                <FaShoppingBag className="w-3.5 h-3.5" />
+                {counts.all} total orders
+              </div>
             </div>
           </motion.div>
         </div>
@@ -277,9 +314,9 @@ const Orders = () => {
         </div>
       </div>
 
-      {/* ---------- Main content ---------- */}
+      {/* ---------- Main ---------- */}
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 -mt-4 sm:-mt-6">
-        {/* Feedback banner */}
+        {/* Feedback */}
         <AnimatePresence>
           {feedback && (
             <motion.div
@@ -294,8 +331,27 @@ const Orders = () => {
           )}
         </AnimatePresence>
 
+        {/* Loading bar */}
+        <AnimatePresence>
+          {loading && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-4 h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-slate-700"
+            >
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="h-full w-1/3 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* ---------- Left sidebar ---------- */}
+          {/* ---------- Sidebar ---------- */}
           <motion.aside
             initial="hidden"
             animate="visible"
@@ -305,18 +361,32 @@ const Orders = () => {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: FaTruck, label: 'Active', value: counts.Shipped + counts.Processing, color: 'indigo' },
-                { icon: FaCheckCircle, label: 'Delivered', value: counts.Delivered, color: 'emerald' },
-                { icon: FaTimes, label: 'Cancelled', value: counts.Cancelled, color: 'rose' },
+                {
+                  icon: FaTruck,
+                  label: 'Active',
+                  value: counts.Shipped + counts.Processing,
+                  color: 'indigo',
+                },
+                {
+                  icon: FaCheckCircle,
+                  label: 'Delivered',
+                  value: counts.Delivered,
+                  color: 'emerald',
+                },
+                {
+                  icon: FaTimes,
+                  label: 'Cancelled',
+                  value: counts.Cancelled,
+                  color: 'rose',
+                },
               ].map(({ icon: Icon, label, value, color }) => (
                 <motion.div
                   key={label}
                   whileHover={{ y: -4, scale: 1.03 }}
-                  transition={{ duration: 0.2, ease: 'easeIn' }}
-                  className="group bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-indigo-900/30 p-4 text-center cursor-pointer transition-all duration-200"
+                  className="group bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-indigo-900/30 p-4 text-center transition-all duration-200"
                 >
                   <div
-                    className={`w-9 h-9 mx-auto mb-2 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${
+                    className={`w-9 h-9 mx-auto mb-2 rounded-xl flex items-center justify-center ${
                       color === 'indigo'
                         ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300'
                         : color === 'emerald'
@@ -326,7 +396,9 @@ const Orders = () => {
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <p className="text-xl font-bold text-gray-900 dark:text-slate-100">{value}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-slate-100">
+                    {value}
+                  </p>
                   <p className="text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">
                     {label}
                   </p>
@@ -334,14 +406,16 @@ const Orders = () => {
               ))}
             </div>
 
-            {/* Info callout */}
+            {/* Info */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-indigo-100 dark:border-slate-700 shadow-sm p-5">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 flex items-center justify-center shrink-0">
                   <FaInfoCircle className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-gray-900 dark:text-slate-100">Need help with an order?</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
+                    Need help with an order?
+                  </p>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                     Our support team is available 24/7 for delivery or refund queries.
                   </p>
@@ -382,7 +456,9 @@ const Orders = () => {
                       <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors duration-200">
                         {label}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{desc}</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 truncate">
+                        {desc}
+                      </p>
                     </div>
                     <FaChevronRight className="w-3 h-3 text-gray-300 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-1 transition-all duration-200" />
                   </Link>
@@ -390,11 +466,9 @@ const Orders = () => {
               </div>
             </div>
 
-            {/* Sign out (mobile) */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.2, ease: 'easeIn' }}
               onClick={handleLogout}
               className="sm:hidden w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-800/60 dark:bg-rose-900/30 dark:text-rose-300 dark:hover:bg-rose-900/50 py-3.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer"
             >
@@ -403,19 +477,18 @@ const Orders = () => {
             </motion.button>
           </motion.aside>
 
-          {/* ---------- Right column ---------- */}
+          {/* ---------- Orders list ---------- */}
           <motion.div
             initial="hidden"
             animate="visible"
             variants={stagger}
             className="lg:col-span-8 space-y-5"
           >
-            {/* Filters + search */}
+            {/* Filters */}
             <motion.div
               variants={fadeInUp}
               className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4 space-y-4"
             >
-              {/* Search */}
               <div className="relative group">
                 <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-slate-500 transition-colors duration-200 group-focus-within:text-indigo-600 dark:group-focus-within:text-indigo-400" />
                 <input
@@ -437,7 +510,6 @@ const Orders = () => {
                 )}
               </div>
 
-              {/* Filter tabs */}
               <div className="flex flex-wrap gap-2">
                 {filterTabs.map((tab) => {
                   const active = activeFilter === tab.key;
@@ -469,7 +541,7 @@ const Orders = () => {
               </div>
             </motion.div>
 
-            {/* Orders list */}
+            {/* List */}
             <motion.div variants={fadeInUp}>
               {filteredOrders.length === 0 ? (
                 <motion.div
@@ -480,11 +552,13 @@ const Orders = () => {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
                     <FaBox className="w-6 h-6" />
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 mb-1">No orders found</h3>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 mb-1">
+                    No orders found
+                  </h3>
                   <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
                     {search
                       ? `Nothing matched "${search}". Try a different search.`
-                      : 'Try a different filter or start shopping to see orders here.'}
+                      : 'Place an order to see it here.'}
                   </p>
                   <Link
                     to="/products"
@@ -497,63 +571,92 @@ const Orders = () => {
               ) : (
                 <div className="space-y-3">
                   {filteredOrders.map((order) => {
-                    const meta = statusMeta[order.status];
+                    const meta = statusMeta[order.status] || statusMeta.Processing;
                     const StatusIcon = meta.icon;
                     const isExpanded = expandedId === order.id;
+                    const firstItem = order.items?.[0];
                     return (
                       <motion.div
+                        id={`order-${order.id}`}
                         key={order.id}
                         layout
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
                         className={`group bg-white dark:bg-slate-800 rounded-2xl border transition-all duration-200 overflow-hidden ${
                           isExpanded
                             ? 'border-indigo-300 dark:border-indigo-500 shadow-lg shadow-indigo-500/10'
                             : 'border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg dark:hover:shadow-indigo-900/30 hover:border-indigo-200 dark:hover:border-indigo-500 hover:-translate-y-0.5'
                         }`}
                       >
-                        {/* Order header (clickable) */}
-                        <button
-                          type="button"
+                        {/* Order header — clicking toggles accordion */}
+                        <div
                           onClick={() => toggleExpand(order.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleExpand(order.id);
+                            }
+                          }}
                           className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-5 text-left cursor-pointer"
                         >
-                          {/* Icon */}
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${meta.tile}`}>
+                          <div
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${meta.tile}`}
+                          >
                             <StatusIcon className="w-5 h-5" />
                           </div>
 
-                          {/* Order info */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
-                                #{order.id}
-                              </p>
+                              {/* ✅ Click order ID → product detail (first item) */}
+                              {firstItem ? (
+                                <Link
+                                  to={buildProductUrl(firstItem)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title={`View ${firstItem.name}`}
+                                  className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-slate-100 truncate hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline underline-offset-2 transition-colors"
+                                >
+                                  #{order.id}
+                                  <FaExternalLinkAlt className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                </Link>
+                              ) : (
+                                <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">
+                                  #{order.id}
+                                </p>
+                              )}
+
                               <span
                                 className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ring-1 ${meta.badge}`}
                               >
-                                <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${order.status === 'Shipped' || order.status === 'Processing' ? 'animate-pulse' : ''}`} />
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${
+                                    order.status === 'Shipped' ||
+                                    order.status === 'Processing'
+                                      ? 'animate-pulse'
+                                      : ''
+                                  }`}
+                                />
                                 {meta.label}
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                               Placed on {order.date}
-                              {order.deliveredOn && ` · Delivered ${order.deliveredOn}`}
+                              {order.deliveredOn &&
+                                ` · Delivered ${order.deliveredOn}`}
                             </p>
                           </div>
 
-                          {/* Total */}
                           <div className="text-left sm:text-right shrink-0">
                             <p className="text-base font-bold text-gray-900 dark:text-slate-100">
                               ₹{order.total.toLocaleString('en-IN')}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-slate-400">
-                              {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                              {order.items.length}{' '}
+                              {order.items.length === 1 ? 'item' : 'items'}
                             </p>
                           </div>
 
-                          {/* Chevron */}
                           <motion.div
                             animate={{ rotate: isExpanded ? 180 : 0 }}
                             transition={{ duration: 0.2 }}
@@ -561,9 +664,8 @@ const Orders = () => {
                           >
                             <FaChevronDown className="w-3.5 h-3.5" />
                           </motion.div>
-                        </button>
+                        </div>
 
-                        {/* Expandable details */}
                         <AnimatePresence>
                           {isExpanded && (
                             <motion.div
@@ -574,37 +676,63 @@ const Orders = () => {
                               className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
                             >
                               <div className="p-5 space-y-5 bg-gradient-to-b from-gray-50/50 to-white dark:from-slate-800/80 dark:to-slate-800">
-                                {/* Items */}
                                 <div>
                                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 dark:text-slate-500 mb-3">
                                     Items in this order
                                   </p>
                                   <ul className="space-y-2">
                                     {order.items.map((item, idx) => (
-                                      <li
+                                      <motion.li
                                         key={idx}
-                                        className="flex items-center gap-3 rounded-xl bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600 p-3"
+                                        whileHover={{ x: 3 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="rounded-xl"
                                       >
-                                        <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-500 dark:text-slate-300 flex items-center justify-center shrink-0">
-                                          <FaBox className="w-3.5 h-3.5" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">
-                                            {item.name}
+                                        {/* ✅ Click item → that product's detail page */}
+                                        <Link
+                                          to={buildProductUrl(item)}
+                                          title={`View ${item.name}`}
+                                          className="group/item flex items-center gap-3 rounded-xl bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600 p-3 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-sm transition-all"
+                                        >
+                                          <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-500 dark:text-slate-300 flex items-center justify-center shrink-0 overflow-hidden">
+                                            {item.image ? (
+                                              <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <FaBox className="w-3.5 h-3.5" />
+                                            )}
+                                          </div>
+
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate group-hover/item:text-indigo-600 dark:group-hover/item:text-indigo-400 transition-colors">
+                                              {item.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-slate-400">
+                                              {item.category}
+                                              {item.size && ` · ${item.size}`}
+                                              {item.color && ` · ${item.color}`}
+                                              {' · Qty '}
+                                              {item.qty}
+                                            </p>
+                                          </div>
+
+                                          <p className="text-sm font-bold text-gray-900 dark:text-slate-100 shrink-0">
+                                            ₹
+                                            {(item.price * item.qty).toLocaleString(
+                                              'en-IN'
+                                            )}
                                           </p>
-                                          <p className="text-xs text-gray-500 dark:text-slate-400">
-                                            {item.category} · Qty {item.qty}
-                                          </p>
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-900 dark:text-slate-100 shrink-0">
-                                          ₹{(item.price * item.qty).toLocaleString('en-IN')}
-                                        </p>
-                                      </li>
+
+                                          <FaChevronRight className="w-3 h-3 text-gray-300 dark:text-slate-500 group-hover/item:text-indigo-600 dark:group-hover/item:text-indigo-400 group-hover/item:translate-x-0.5 transition-all shrink-0" />
+                                        </Link>
+                                      </motion.li>
                                     ))}
                                   </ul>
                                 </div>
 
-                                {/* Meta grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <MetaCard
                                     icon={FaMapMarkerAlt}
@@ -618,7 +746,6 @@ const Orders = () => {
                                   />
                                 </div>
 
-                                {/* Actions */}
                                 <div className="flex flex-wrap gap-2 pt-2">
                                   {order.status === 'Delivered' && (
                                     <button
@@ -633,7 +760,9 @@ const Orders = () => {
                                       Download invoice
                                     </button>
                                   )}
-                                  {(order.status === 'Delivered' || order.status === 'Cancelled') && (
+
+                                  {(order.status === 'Delivered' ||
+                                    order.status === 'Cancelled') && (
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -646,20 +775,38 @@ const Orders = () => {
                                       Buy again
                                     </button>
                                   )}
-                                  {(order.status === 'Shipped' || order.status === 'Processing') && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        console.log('🚚 Track:', order.id);
-                                        showFeedback(`Tracking ${order.id}…`);
-                                      }}
-                                      className="group/btn inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer"
-                                    >
-                                      <FaTruck className="w-3 h-3 transition-transform group-hover/btn:translate-x-0.5" />
-                                      Track order
-                                    </button>
+
+                                  {(order.status === 'Shipped' ||
+                                    order.status === 'Processing') && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          showFeedback(`Tracking ${order.id}…`);
+                                        }}
+                                        className="group/btn inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer"
+                                      >
+                                        <FaTruck className="w-3 h-3 transition-transform group-hover/btn:translate-x-0.5" />
+                                        Track order
+                                      </button>
+
+                                      {order.status === 'Processing' && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCancelOrder(order);
+                                          }}
+                                          className="group/btn inline-flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-800/60 bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 px-3.5 py-2 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer"
+                                        >
+                                          <FaTimes className="w-3 h-3" />
+                                          Cancel order
+                                        </button>
+                                      )}
+                                    </>
                                   )}
+
                                   <Link
                                     to={`/orders/${order.id}`}
                                     className="group/btn ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 hover:gap-2 transition-all duration-200 ease-in"
@@ -669,12 +816,12 @@ const Orders = () => {
                                   </Link>
                                 </div>
 
-                                {/* Delivered banner */}
                                 {order.status === 'Delivered' && (
                                   <div className="flex items-center gap-2 rounded-xl border border-emerald-100 dark:border-emerald-700/50 bg-emerald-50/60 dark:bg-emerald-900/30 px-3.5 py-2.5 text-xs text-emerald-700 dark:text-emerald-300">
                                     <FaStar className="w-3 h-3" />
                                     <span className="font-medium">
-                                      Delivered on {order.deliveredOn}. Enjoy your purchase!
+                                      Delivered on {order.deliveredOn}. Enjoy your
+                                      purchase!
                                     </span>
                                   </div>
                                 )}
@@ -695,7 +842,7 @@ const Orders = () => {
   );
 };
 
-/* ---------- Reusable meta card (Updated with Dark Mode) ---------- */
+/* ---------- Reusable meta card ---------- */
 const MetaCard = ({ icon: Icon, label, value }) => (
   <div className="flex items-start gap-3 rounded-xl border border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-700 p-3.5">
     <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-500 dark:text-slate-300 flex items-center justify-center shrink-0">

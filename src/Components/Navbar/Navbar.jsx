@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useCartCount } from '../../hooks/useCartCount';
+import { useWishlistCount } from '../../hooks/useWishlistCount';   // ✅ IMPORT (keep this)
 import {
   Menu as MenuIcon,
   X,
@@ -214,46 +215,17 @@ const MenuRow = ({ to, onClick, tile, Icon, label, description, badge, badgeClas
   </Link>
 );
 
-/* ============================== Hooks ============================== */
-const useWishlistCount = () => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    const update = () => {
-      try {
-        const saved = localStorage.getItem('wishlist');
-        const parsed = saved ? JSON.parse(saved) : [];
-        setCount(Array.isArray(parsed) ? parsed.length : 0);
-      } catch {
-        setCount(0);
-      }
-    };
-
-    const onStorage = (e) => {
-      if (e.key === 'wishlist') update();
-    };
-
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('wishlist:updated', update);
-    update();
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('wishlist:updated', update);
-    };
-  }, []);
-
-  return count;
-};
-
 /* ============================== Component ============================== */
+/* ⚠️ NOTE: The inline useWishlistCount hook has been REMOVED.
+   The hook is now imported at the top of the file. */
+
 const Navbar = ({ className = '' }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useUser();
 
-  const wishlistCount = useWishlistCount();
-  const cartCount = useCartCount();
+  const wishlistCount = useWishlistCount();   // ✅ from the imported hook
+  const cartCount = useCartCount();           // ✅ from the imported hook
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -485,9 +457,8 @@ const Navbar = ({ className = '' }) => {
       className={`fixed top-0 left-0 right-0 z-[100] w-full bg-white shadow-sm border-b border-gray-200 ${className}`}
     >
       <div className="container mx-auto px-3 sm:px-6">
-        {/* ================= DESKTOP BAR (3-column layout) ================= */}
+        {/* ================= DESKTOP BAR ================= */}
         <nav className="hidden lg:flex items-center gap-3 py-3">
-          {/* LEFT: Logo */}
           <motion.div
             variants={logoVariants}
             initial="hidden"
@@ -503,7 +474,6 @@ const Navbar = ({ className = '' }) => {
             </Link>
           </motion.div>
 
-          {/* CENTER: Nav links (centered) */}
           <div className="flex-1 flex items-center justify-center gap-0.5">
             {desktopLinksBefore.map((item, i) => (
               <motion.div
@@ -521,7 +491,6 @@ const Navbar = ({ className = '' }) => {
               </motion.div>
             ))}
 
-            {/* Products dropdown */}
             <div className="relative" ref={shopRef}>
               <motion.button
                 type="button"
@@ -651,9 +620,7 @@ const Navbar = ({ className = '' }) => {
             ))}
           </div>
 
-          {/* RIGHT: Search + Wishlist + Cart + Profile / Account */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
@@ -707,10 +674,9 @@ const Navbar = ({ className = '' }) => {
               </Link>
             </motion.div>
 
-            {/* Profile (logged-in) OR Account (guest) */}
+            {/* Profile / Account */}
             <div className="relative" ref={accountRef}>
               {user ? (
-                // ✅ Logged-in: ONLY the profile avatar, no text/chevron
                 <motion.button
                   type="button"
                   onClick={toggleAccount}
@@ -727,7 +693,6 @@ const Navbar = ({ className = '' }) => {
                   <span className="absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white" />
                 </motion.button>
               ) : (
-                // Guest: full "Account" button with label + chevron
                 <motion.button
                   type="button"
                   onClick={toggleAccount}
@@ -777,7 +742,7 @@ const Navbar = ({ className = '' }) => {
           </div>
         </nav>
 
-        {/* ================= MOBILE BAR (unchanged) ================= */}
+        {/* ================= MOBILE BAR ================= */}
         <nav className="flex lg:hidden items-center justify-between gap-3 py-2">
           <motion.div variants={logoVariants} initial="hidden" animate="visible">
             <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
@@ -907,7 +872,7 @@ const Navbar = ({ className = '' }) => {
           )}
         </AnimatePresence>
 
-        {/* Mobile menu (scrollable) */}
+        {/* Mobile menu */}
         <AnimatePresence>
           {isMobileOpen && (
             <motion.div

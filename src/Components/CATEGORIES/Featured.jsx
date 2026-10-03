@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Heart, ShoppingCart, ArrowRight, Sparkles } from 'lucide-react';
+import { Star, Heart, ShoppingCart, ArrowRight, Sparkles, Check } from 'lucide-react';
 import products from '../../Product.js';
 
+// 🔥 REQUIRED imports — must match the file paths
+import { addToCart as addToCartStore } from '../../utils/cartStore';
+import { toggleWishlist as toggleWishlistStore } from '../../utils/wishlistStore';
+import { useWishlistAutoReload } from '../../hooks/useWishlistAutoReload';
+
+/* ============================== Animation Variants ============================== */
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -17,8 +23,14 @@ const staggerContainer = {
   },
 };
 
-const ProductCard = ({ product, wishlist, toggleWishlist }) => {
-  const isWishlisted = wishlist.some((item) => item.id === product.id);
+/* ============================== Product Card ============================== */
+const ProductCard = memo(function ProductCard({
+  product,
+  isWishlisted,
+  onWishlist,
+  onAddToCart,
+}) {
+  const [justAdded, setJustAdded] = useState(false);
 
   const discount = product.oldPrice
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
@@ -30,6 +42,19 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
       : product.badge === 'New'
         ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
         : 'bg-gradient-to-r from-amber-500 to-orange-500';
+
+  const handleAdd = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      onAddToCart(product); // → fires `cart:updated`
+      setJustAdded(true);
+      window.clearTimeout(handleAdd._t);
+      handleAdd._t = window.setTimeout(() => setJustAdded(false), 1200);
+    },
+    [product, onAddToCart]
+  );
 
   return (
     <motion.div
@@ -60,14 +85,15 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
             </span>
           )}
 
+          {/* ❤️ Wishlist — fires wishlist:updated */}
           <button
             type="button"
-            onClick={(e) => toggleWishlist(e, product)}
+            onClick={(e) => onWishlist(e, product)}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur flex items-center justify-center shadow-md transition-all duration-300 ${
+            className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur flex items-center justify-center shadow-md transition-all duration-300 cursor-pointer ${
               isWishlisted
                 ? 'bg-rose-500 text-white opacity-100 scale-110'
-                : 'bg-white/90 text-gray-500 hover:bg-rose-500 hover:text-white opacity-0 group-hover:opacity-100'
+                : 'bg-white/90 text-gray-500 hover:bg-rose-500 hover:text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
             }`}
           >
             <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -86,7 +112,7 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           <span className="text-xs text-gray-400">({product.reviews})</span>
         </div>
 
-        {product.sizes && product.sizes.length > 0 && (
+        {product.sizes?.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {product.sizes.slice(0, 3).map((size) => (
               <span key={size} className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
@@ -112,43 +138,49 @@ const ProductCard = ({ product, wishlist, toggleWishlist }) => {
           )}
         </div>
 
-        {/* ✅ Simple CSS Buy Now Button */}
+        {/* ✅ Add To Cart — fires cart:updated */}
         <motion.div whileTap={{ scale: 0.97 }} className="mt-auto">
-          <Link to="/cart" className="buy-now-btn">
-            <ShoppingCart className="buy-now-icon" />
-            <span className="buy-now-label">Buy Now</span>
-          </Link>
+          <button
+            type="button"
+            onClick={handleAdd}
+            aria-label={`Add ${product.name} to cart`}
+            className={`buy-now-btn w-full cursor-pointer transition-colors ${justAdded ? 'is-added' : ''}`}
+          >
+            <span className="relative z-10 inline-flex items-center justify-center gap-2">
+              {justAdded ? (
+                <>
+                  <Check className="w-4 h-4 buy-now-icon" />
+                  <span className="buy-now-label">Added to Cart</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 buy-now-icon" />
+                  <span className="buy-now-label">Add To Cart</span>
+                </>
+              )}
+            </span>
+          </button>
         </motion.div>
       </div>
     </motion.div>
   );
-};
+});
 
+/* ============================== Featured Section ============================== */
 const Featured = () => {
-  const [wishlist, setWishlist] = useState(() => {
-    try {
-      const saved = localStorage.getItem('wishlist');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // ✅ Live wishlist from the shared store (auto-updates cross-tab)
+  const { items: wishlist } = useWishlistAutoReload();
 
-  useEffect(() => {
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-    window.dispatchEvent(new Event('wishlist:updated'));
-  }, [wishlist]);
-
-  const toggleWishlist = (e, product) => {
+  /* ---------- Handlers that export to the stores ---------- */
+  const handleWishlist = useCallback((e, product) => {
     e.preventDefault();
     e.stopPropagation();
-    setWishlist((prev) => {
-      const exists = prev.find((item) => item.id === product.id);
-      return exists
-        ? prev.filter((item) => item.id !== product.id)
-        : [...prev, product];
-    });
-  };
+    toggleWishlistStore(product); // → fires `wishlist:updated`
+  }, []);
+
+  const handleAddToCart = useCallback((product) => {
+    addToCartStore(product); // → fires `cart:updated`
+  }, []);
 
   const featuredItems = products.filter((p) => p.rating >= 4.5).slice(0, 8);
 
@@ -197,8 +229,9 @@ const Featured = () => {
               <ProductCard
                 key={product.id}
                 product={product}
-                wishlist={wishlist}
-                toggleWishlist={toggleWishlist}
+                isWishlisted={wishlist.some((i) => i.id === product.id)}
+                onWishlist={handleWishlist}
+                onAddToCart={handleAddToCart}
               />
             ))}
           </motion.div>

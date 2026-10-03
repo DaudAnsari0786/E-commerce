@@ -178,7 +178,7 @@ const ProductCard = memo(function ProductCard({
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4 buy-now-icon" />
-                  Buy Now
+                 Add To Cart
                 </>
               )}
             </span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaMapMarkerAlt, FaHome, FaBuilding, FaPlus, FaEdit, FaTrashAlt,
@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 import { useUser } from '../../context/UserContext';
 
+/* ---------- Animation variants ---------- */
 const fadeInUp = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
@@ -17,10 +18,23 @@ const stagger = {
   visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.05 } },
 };
 
+/* ---------- Address type metadata ---------- */
 const addressTypeMeta = {
-  Home:  { icon: FaHome,         theme: 'indigo',  tile: 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300',   badge: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' },
-  Work:  { icon: FaBuilding,     theme: 'emerald', tile: 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300', badge: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' },
-  Other: { icon: FaMapMarkerAlt, theme: 'amber',   tile: 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300',       badge: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' },
+  Home: {
+    icon: FaHome,
+    tile: 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300',
+    badge: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300',
+  },
+  Work: {
+    icon: FaBuilding,
+    tile: 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300',
+    badge: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+  },
+  Other: {
+    icon: FaMapMarkerAlt,
+    tile: 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300',
+    badge: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+  },
 };
 
 const emptyForm = {
@@ -28,24 +42,45 @@ const emptyForm = {
   city: '', state: '', pincode: '', country: 'India', isDefault: false,
 };
 
+/* ============================== Component ============================== */
 const Address = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, logout } = useUser();
+
+  /* ✅ Selection mode — triggered by ?next=checkout */
+  const nextRoute = searchParams.get('next');
+  const isSelectMode = Boolean(nextRoute);
 
   const STORAGE_KEY = user ? `stylecraft:addresses:${user.email}` : null;
 
+  /* ---------- State ---------- */
   const [addresses, setAddresses] = useState(() => {
     try {
       if (user?.email) {
         const raw = localStorage.getItem(`stylecraft:addresses:${user.email}`);
         if (raw) return JSON.parse(raw);
       }
-    } catch { /* ignore */ }
-    // Seed for fresh user
-    return user ? [{
-      id: 1, type: 'Home', name: user.name || '', phone: '',
-      line1: '', city: '', state: '', pincode: '', country: 'India', isDefault: true,
-    }] : [];
+    } catch {
+      /* ignore */
+    }
+    // Seed first address for a fresh user
+    return user
+      ? [
+          {
+            id: 1,
+            type: 'Home',
+            name: user.name || '',
+            phone: '',
+            line1: '',
+            city: '',
+            state: '',
+            pincode: '',
+            country: 'India',
+            isDefault: true,
+          },
+        ]
+      : [];
   });
 
   const [editing, setEditing] = useState(false);
@@ -54,25 +89,55 @@ const Address = () => {
   const [feedback, setFeedback] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  useEffect(() => { if (!user) navigate('/login'); }, [user, navigate]);
+  /* ✅ Track the currently selected shipping address */
+  const [shippingId, setShippingId] = useState(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem('stylecraft:shipping') || 'null'
+      );
+      return saved?.id ?? null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Persist per user
+  /* ---------- Auth guard ---------- */
+  useEffect(() => {
+    if (!user) navigate('/login');
+  }, [user, navigate]);
+
+  /* ---------- Persist addresses per user ---------- */
   useEffect(() => {
     if (!STORAGE_KEY) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(addresses)); }
-    catch { /* ignore */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(addresses));
+    } catch {
+      /* ignore */
+    }
   }, [addresses, STORAGE_KEY]);
 
   if (!user) return null;
 
+  /* ---------- Helpers ---------- */
   const showFeedback = (text, tone = 'success') => {
     setFeedback({ text, tone });
     setTimeout(() => setFeedback(null), 2500);
   };
 
-  const startAdd = () => { setForm({ ...emptyForm, name: user.name || '' }); setEditing(true); };
-  const startEdit = (addr) => { setForm({ ...addr }); setEditing(true); };
-  const cancelEdit = () => { setEditing(false); setForm(emptyForm); };
+  const startAdd = () => {
+    setForm({ ...emptyForm, name: user.name || '' });
+    setEditing(true);
+  };
+
+  const startEdit = (addr) => {
+    setForm({ ...addr });
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setForm(emptyForm);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -90,22 +155,28 @@ const Address = () => {
         } else {
           next = [...prev, { ...form, id: Date.now() }];
         }
+        // Enforce single default
         if (form.isDefault) {
+          const targetId = form.id || next[next.length - 1].id;
           next = next.map((a) =>
-            a.id === (form.id || next[next.length - 1].id)
+            a.id === targetId
               ? { ...a, isDefault: true }
               : { ...a, isDefault: false }
           );
         }
         return next;
       });
-      setSaving(false); setEditing(false); setForm(emptyForm);
+      setSaving(false);
+      setEditing(false);
+      setForm(emptyForm);
       showFeedback(form.id ? 'Address updated' : 'Address added');
     }, 400);
   };
 
   const setDefault = (id) => {
-    setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
+    setAddresses((prev) =>
+      prev.map((a) => ({ ...a, isDefault: a.id === id }))
+    );
     showFeedback('Default address updated');
   };
 
@@ -115,25 +186,62 @@ const Address = () => {
     setDeleteTarget(null);
   };
 
-  const handleLogout = () => { logout(); navigate('/'); };
-  const initials = (user.name || 'U').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  /* ✅ Called when user picks a shipping address in select mode */
+  const selectAddress = (addr) => {
+    try {
+      localStorage.setItem('stylecraft:shipping', JSON.stringify(addr));
+    } catch {
+      /* ignore quota errors */
+    }
+    setShippingId(addr.id);
+    showFeedback(`Shipping to ${addr.type} — ${addr.city}`);
 
+    // If we came from checkout, bounce straight back there
+    if (nextRoute === 'checkout') {
+      setTimeout(() => navigate('/checkout'), 400);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const initials = (user.name || 'U')
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  /* ---------- Render ---------- */
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-rose-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-300">
+      {/* ---------- Hero ---------- */}
       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-500">
         <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            <Link to="/" className="group inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors duration-200 ease-in">
-              <span className="transition-transform duration-200 group-hover:-translate-x-1">←</span>
-              Back to home
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <Link
+              to={isSelectMode ? '/cart' : '/'}
+              className="group inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors duration-200 ease-in"
+            >
+              <span className="transition-transform duration-200 group-hover:-translate-x-1">
+                ←
+              </span>
+              {isSelectMode ? 'Back to cart' : 'Back to home'}
             </Link>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.05 }}
             className="mt-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-5 text-white"
           >
@@ -142,14 +250,22 @@ const Address = () => {
                 {initials}
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">My Addresses</h1>
-                <p className="text-sm text-white/80 mt-1">Manage where your orders are delivered</p>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+                  {isSelectMode ? 'Choose Shipping Address' : 'My Addresses'}
+                </h1>
+                <p className="text-sm text-white/80 mt-1">
+                  {isSelectMode
+                    ? 'Select where you want your order delivered'
+                    : 'Manage where your orders are delivered'}
+                </p>
               </div>
             </div>
 
             <motion.button
-              type="button" onClick={startAdd}
-              whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.96 }}
+              type="button"
+              onClick={startAdd}
+              whileHover={{ scale: 1.04, y: -1 }}
+              whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.2, ease: 'easeIn' }}
               className="inline-flex items-center gap-2 rounded-xl bg-white text-indigo-700 px-4 py-2.5 text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 ease-in cursor-pointer"
             >
@@ -160,18 +276,26 @@ const Address = () => {
         </div>
 
         <div className="relative">
-          <svg className="block w-full h-8 sm:h-12 text-slate-50 dark:text-slate-950 transition-colors duration-300"
-            viewBox="0 0 1440 60" preserveAspectRatio="none" fill="currentColor">
+          <svg
+            className="block w-full h-8 sm:h-12 text-slate-50 dark:text-slate-950 transition-colors duration-300"
+            viewBox="0 0 1440 60"
+            preserveAspectRatio="none"
+            fill="currentColor"
+          >
             <path d="M0,32 C240,60 480,0 720,20 C960,40 1200,60 1440,32 L1440,60 L0,60 Z" />
           </svg>
         </div>
       </div>
 
+      {/* ---------- Main ---------- */}
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 -mt-4 sm:-mt-6">
+        {/* Feedback banner */}
         <AnimatePresence>
           {feedback && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               className={`mb-6 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm ${
                 feedback.tone === 'error'
                   ? 'border-rose-200 dark:border-rose-700/50 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300'
@@ -185,29 +309,45 @@ const Address = () => {
         </AnimatePresence>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <motion.aside initial="hidden" animate="visible" variants={fadeInUp} className="lg:col-span-4 space-y-5">
+          {/* ---------- Sidebar ---------- */}
+          <motion.aside
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            className="lg:col-span-4 space-y-5"
+          >
+            {/* Stats card */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-5">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/30">
                   <FaMapMarkerAlt className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-slate-100">{addresses.length}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-slate-100">
+                    {addresses.length}
+                  </p>
                   <p className="text-xs text-gray-500 dark:text-slate-400">
-                    {addresses.length === 1 ? 'Saved address' : 'Saved addresses'}
+                    {addresses.length === 1
+                      ? 'Saved address'
+                      : 'Saved addresses'}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <FaInfoCircle className="w-3.5 h-3.5 text-indigo-500" />
-                Your default address is used first at checkout
+                {isSelectMode
+                  ? 'Tap an address to use it for this order'
+                  : 'Your default address is used first at checkout'}
               </div>
             </div>
 
+            {/* Quick links */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
               <div className="px-5 pt-5 pb-3">
-                <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">Quick links</h3>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">
+                  Quick links
+                </h3>
               </div>
               <div className="px-2 pb-2">
                 {[
@@ -216,14 +356,21 @@ const Address = () => {
                   { icon: FaHome, label: 'Wishlist', to: '/wishlist', desc: 'Saved items' },
                   { icon: FaGlobe, label: 'Settings', to: '/settings', desc: 'Preferences' },
                 ].map(({ icon: Icon, label, to, desc }) => (
-                  <Link key={label} to={to}
-                    className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-slate-700/60 hover:translate-x-1 transition-all duration-200 ease-in">
+                  <Link
+                    key={label}
+                    to={to}
+                    className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-slate-700/60 hover:translate-x-1 transition-all duration-200 ease-in"
+                  >
                     <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-300 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors duration-200 group-hover:scale-110">
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors duration-200">{label}</p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{desc}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors duration-200">
+                        {label}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 truncate">
+                        {desc}
+                      </p>
                     </div>
                     <FaChevronRight className="w-3 h-3 text-gray-300 dark:text-slate-500 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all duration-200" />
                   </Link>
@@ -231,17 +378,27 @@ const Address = () => {
               </div>
             </div>
 
+            {/* Sign out (mobile) */}
             <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2, ease: 'easeIn' }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.2, ease: 'easeIn' }}
               onClick={handleLogout}
-              className="sm:hidden w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 py-3.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer">
+              className="sm:hidden w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 py-3.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer"
+            >
               <FaSignOutAlt className="w-3.5 h-3.5" />
               Sign out
             </motion.button>
           </motion.aside>
 
-          <motion.div initial="hidden" animate="visible" variants={stagger} className="lg:col-span-8 space-y-6">
-            {/* Edit/Add form */}
+          {/* ---------- Main content ---------- */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={stagger}
+            className="lg:col-span-8 space-y-6"
+          >
+            {/* Add / Edit form */}
             <AnimatePresence>
               {editing && (
                 <motion.section
@@ -254,25 +411,35 @@ const Address = () => {
                   <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-indigo-100 dark:border-slate-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-800">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                        {form.id ? <FaEdit className="w-4 h-4" /> : <FaPlus className="w-4 h-4" />}
+                        {form.id ? (
+                          <FaEdit className="w-4 h-4" />
+                        ) : (
+                          <FaPlus className="w-4 h-4" />
+                        )}
                       </div>
                       <div>
                         <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">
                           {form.id ? 'Edit address' : 'Add new address'}
                         </h2>
                         <p className="text-xs text-gray-500 dark:text-slate-400">
-                          {form.id ? 'Update your delivery details' : 'Fill in the delivery details'}
+                          {form.id
+                            ? 'Update your delivery details'
+                            : 'Fill in the delivery details'}
                         </p>
                       </div>
                     </div>
-                    <button type="button" onClick={cancelEdit}
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
                       className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-500 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-600 transition-colors duration-200 cursor-pointer"
-                      aria-label="Cancel">
+                      aria-label="Cancel"
+                    >
                       <FaTimes className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-5">
+                    {/* Type selector */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
                         Address type
@@ -283,12 +450,16 @@ const Address = () => {
                           const Icon = meta.icon;
                           const active = form.type === t;
                           return (
-                            <button key={t} type="button" onClick={() => setForm((f) => ({ ...f, type: t }))}
-                              className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-200 ease-in ${
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setForm((f) => ({ ...f, type: t }))}
+                              className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-200 ease-in cursor-pointer ${
                                 active
                                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 shadow-sm'
                                   : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                              }`}>
+                              }`}
+                            >
                               <Icon className="w-3.5 h-3.5" />
                               {t}
                             </button>
@@ -297,40 +468,104 @@ const Address = () => {
                       </div>
                     </div>
 
+                    {/* Name + phone */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <InputField icon={FaUser} name="name" label="Full name" value={form.name}
-                        onChange={handleChange} placeholder="Jane Doe" required />
-                      <InputField icon={FaPhoneAlt} name="phone" label="Phone number" value={form.phone}
-                        onChange={handleChange} placeholder="+91 90263 50956" required />
+                      <InputField
+                        icon={FaUser}
+                        name="name"
+                        label="Full name"
+                        value={form.name}
+                        onChange={handleChange}
+                        placeholder="Jane Doe"
+                        required
+                      />
+                      <InputField
+                        icon={FaPhoneAlt}
+                        name="phone"
+                        label="Phone number"
+                        value={form.phone}
+                        onChange={handleChange}
+                        placeholder="+91 90263 50956"
+                        required
+                      />
                     </div>
 
-                    <InputField icon={FaMapMarkerAlt} name="line1" label="Address line" value={form.line1}
-                      onChange={handleChange} placeholder="House no., street, area" required />
+                    <InputField
+                      icon={FaMapMarkerAlt}
+                      name="line1"
+                      label="Address line"
+                      value={form.line1}
+                      onChange={handleChange}
+                      placeholder="House no., street, area"
+                      required
+                    />
 
+                    {/* City / state / pincode */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <InputField icon={FaCity} name="city" label="City" value={form.city}
-                        onChange={handleChange} placeholder="Noida" required />
-                      <InputField icon={FaGlobe} name="state" label="State" value={form.state}
-                        onChange={handleChange} placeholder="Uttar Pradesh" required />
-                      <InputField icon={FaMapMarkerAlt} name="pincode" label="Pincode" value={form.pincode}
-                        onChange={handleChange} placeholder="201301" required />
+                      <InputField
+                        icon={FaCity}
+                        name="city"
+                        label="City"
+                        value={form.city}
+                        onChange={handleChange}
+                        placeholder="Noida"
+                        required
+                      />
+                      <InputField
+                        icon={FaGlobe}
+                        name="state"
+                        label="State"
+                        value={form.state}
+                        onChange={handleChange}
+                        placeholder="Uttar Pradesh"
+                        required
+                      />
+                      <InputField
+                        icon={FaMapMarkerAlt}
+                        name="pincode"
+                        label="Pincode"
+                        value={form.pincode}
+                        onChange={handleChange}
+                        placeholder="201301"
+                        required
+                      />
                     </div>
 
+                    {/* Country + default */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <InputField icon={FaGlobe} name="country" label="Country" value={form.country}
-                        onChange={handleChange} placeholder="India" required />
+                      <InputField
+                        icon={FaGlobe}
+                        name="country"
+                        label="Country"
+                        value={form.country}
+                        onChange={handleChange}
+                        placeholder="India"
+                        required
+                      />
                       <label className="flex items-center gap-3 mt-6 sm:mt-7 cursor-pointer select-none">
-                        <input type="checkbox" name="isDefault" checked={form.isDefault} onChange={handleChange}
-                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
-                        <span className="text-sm text-gray-700 dark:text-slate-300">Set as default address</span>
+                        <input
+                          type="checkbox"
+                          name="isDefault"
+                          checked={form.isDefault}
+                          onChange={handleChange}
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-slate-300">
+                          Set as default address
+                        </span>
                       </label>
                     </div>
 
+                    {/* Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                      <motion.button type="submit" disabled={saving}
-                        whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
+                      <motion.button
+                        type="submit"
+                        disabled={saving}
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.98 }}
                         transition={{ duration: 0.2, ease: 'easeIn' }}
-                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer disabled:opacity-70">
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer disabled:opacity-70"
+                      >
                         {saving ? (
                           <>
                             <span className="w-3.5 h-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -343,10 +578,14 @@ const Address = () => {
                           </>
                         )}
                       </motion.button>
-                      <motion.button type="button" onClick={cancelEdit}
-                        whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
+                      <motion.button
+                        type="button"
+                        onClick={cancelEdit}
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.98 }}
                         transition={{ duration: 0.2, ease: 'easeIn' }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 px-4 py-3 text-sm font-semibold transition-all duration-200 ease-in cursor-pointer">
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 px-4 py-3 text-sm font-semibold transition-all duration-200 ease-in cursor-pointer"
+                      >
                         <FaTimes className="w-3.5 h-3.5" />
                         Cancel
                       </motion.button>
@@ -360,11 +599,14 @@ const Address = () => {
             <motion.section variants={fadeInUp}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">
-                  Saved addresses
+                  {isSelectMode ? 'Pick an address' : 'Saved addresses'}
                 </h2>
                 {!editing && (
-                  <button type="button" onClick={startAdd}
-                    className="group bg-blue-900/50 py-2 px-4 rounded block sm:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:gap-2 transition-all duration-200 ease-in cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={startAdd}
+                    className="sm:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors duration-200 ease-in cursor-pointer"
+                  >
                     <FaPlus className="w-2.5 h-2.5" />
                     Add new
                   </button>
@@ -372,18 +614,27 @@ const Address = () => {
               </div>
 
               {addresses.length === 0 ? (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 p-10 text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 p-10 text-center"
+                >
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
                     <FaMapMarkerAlt className="w-6 h-6" />
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 mb-1">No addresses yet</h3>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 mb-1">
+                    No addresses yet
+                  </h3>
                   <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
-                    Add your first delivery address to speed up checkout.
+                    Add your first delivery address to continue.
                   </p>
-                  <motion.button type="button" onClick={startAdd}
-                    whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer">
+                  <motion.button
+                    type="button"
+                    onClick={startAdd}
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer"
+                  >
                     <FaPlus className="w-3.5 h-3.5" />
                     Add new address
                   </motion.button>
@@ -391,68 +642,155 @@ const Address = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {addresses.map((addr) => {
-                    const meta = addressTypeMeta[addr.type] || addressTypeMeta.Other;
+                    const meta =
+                      addressTypeMeta[addr.type] || addressTypeMeta.Other;
                     const TypeIcon = meta.icon;
+                    const isSelected =
+                      isSelectMode && shippingId === addr.id;
+
                     return (
-                      <motion.div key={addr.id} layout
-                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
+                      <motion.div
+                        key={addr.id}
+                        layout
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.25, ease: 'easeOut' }}
                         whileHover={{ y: -4 }}
+                        onClick={
+                          isSelectMode ? () => selectAddress(addr) : undefined
+                        }
+                        role={isSelectMode ? 'button' : undefined}
+                        tabIndex={isSelectMode ? 0 : undefined}
+                        onKeyDown={
+                          isSelectMode
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  selectAddress(addr);
+                                }
+                              }
+                            : undefined
+                        }
                         className={`group relative bg-white dark:bg-slate-800 rounded-2xl border p-5 transition-all duration-200 ${
-                          addr.isDefault
+                          isSelected
+                            ? 'border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-500/20'
+                            : addr.isDefault
                             ? 'border-indigo-300 dark:border-indigo-700 shadow-md shadow-indigo-500/10'
                             : 'border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-indigo-200 dark:hover:border-slate-600'
-                        }`}>
-                        {addr.isDefault && (
+                        } ${isSelectMode ? 'cursor-pointer' : ''}`}
+                      >
+                        {/* Selected pill */}
+                        {isSelected && (
+                          <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 shadow-sm">
+                            <FaCheckCircle className="w-2.5 h-2.5" />
+                            Selected
+                          </span>
+                        )}
+
+                        {/* Default pill */}
+                        {!isSelected && addr.isDefault && (
                           <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 shadow-sm">
                             <FaStar className="w-2.5 h-2.5" />
                             Default
                           </span>
                         )}
 
+                        {/* Header */}
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${meta.tile}`}>
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${meta.tile}`}
+                            >
                               <TypeIcon className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">{addr.name}</p>
-                              <span className={`inline-flex items-center gap-1 rounded-full text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 mt-0.5 ${meta.badge}`}>
+                              <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">
+                                {addr.name}
+                              </p>
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 mt-0.5 ${meta.badge}`}
+                              >
                                 {addr.type}
                               </span>
                             </div>
                           </div>
                         </div>
 
+                        {/* Address lines */}
                         <div className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed space-y-0.5">
                           <p className="truncate">{addr.line1 || '—'}</p>
-                          <p>{addr.city}, {addr.state} — {addr.pincode}</p>
-                          <p className="text-gray-500 dark:text-slate-400 text-xs">{addr.country}</p>
+                          <p>
+                            {addr.city}, {addr.state} — {addr.pincode}
+                          </p>
+                          <p className="text-gray-500 dark:text-slate-400 text-xs">
+                            {addr.country}
+                          </p>
                         </div>
 
+                        {/* Phone */}
                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                           <FaPhoneAlt className="w-3 h-3 text-gray-400 dark:text-slate-500" />
                           <span>{addr.phone || '—'}</span>
                         </div>
 
-                        <div className="mt-4 flex items-center gap-2">
-                          {!addr.isDefault && (
-                            <button type="button" onClick={() => setDefault(addr.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:border-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-300 text-gray-600 dark:text-slate-300 px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer">
+                        {/* Actions */}
+                        <div className="mt-4 flex items-center gap-2 flex-wrap">
+                          {!addr.isDefault && !isSelectMode && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDefault(addr.id);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:border-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-300 text-gray-600 dark:text-slate-300 px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer"
+                            >
                               <FaStar className="w-2.5 h-2.5" />
                               Set default
                             </button>
                           )}
-                          <button type="button" onClick={() => startEdit(addr)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:border-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-300 text-gray-600 dark:text-slate-300 px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer">
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEdit(addr);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:border-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-300 text-gray-600 dark:text-slate-300 px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer"
+                          >
                             <FaEdit className="w-2.5 h-2.5" />
                             Edit
                           </button>
-                          <button type="button" onClick={() => setDeleteTarget(addr)}
-                            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer">
-                            <FaTrashAlt className="w-2.5 h-2.5" />
-                            Delete
-                          </button>
+
+                          {/* ✅ Selection button (only in select mode) */}
+                          {isSelectMode && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                selectAddress(addr);
+                              }}
+                              className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer"
+                            >
+                              <FaCheckCircle className="w-2.5 h-2.5" />
+                              Use this address
+                            </button>
+                          )}
+
+                          {/* Delete (only outside select mode) */}
+                          {!isSelectMode && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget(addr);
+                              }}
+                              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 ease-in cursor-pointer"
+                            >
+                              <FaTrashAlt className="w-2.5 h-2.5" />
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     );
@@ -464,34 +802,52 @@ const Address = () => {
         </div>
       </div>
 
-      {/* Delete modal */}
+      {/* ---------- Delete confirmation modal ---------- */}
       <AnimatePresence>
         {deleteTarget && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            onClick={() => setDeleteTarget(null)}>
+            onClick={() => setDeleteTarget(null)}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.2, ease: 'easeOut' }}
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
               className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}>
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-6 text-center">
                 <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 flex items-center justify-center">
                   <FaTrashAlt className="w-5 h-5" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-1">Delete this address?</h3>
-                <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">{deleteTarget.line1}</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-1">
+                  Delete this address?
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">
+                  {deleteTarget.line1}
+                </p>
                 <p className="text-xs text-gray-400 dark:text-slate-500">
-                  {deleteTarget.city}, {deleteTarget.state} — {deleteTarget.pincode}
+                  {deleteTarget.city}, {deleteTarget.state} —{' '}
+                  {deleteTarget.pincode}
                 </p>
               </div>
               <div className="px-6 pb-6 flex gap-3">
-                <button type="button" onClick={() => setDeleteTarget(null)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ease-in cursor-pointer"
+                >
                   Cancel
                 </button>
-                <button type="button" onClick={confirmDelete}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ease-in cursor-pointer"
+                >
                   <FaTrashAlt className="w-3 h-3" />
                   Delete
                 </button>
@@ -504,15 +860,36 @@ const Address = () => {
   );
 };
 
-const InputField = ({ icon: Icon, name, label, value, onChange, type = 'text', placeholder, required }) => (
+/* ---------- Reusable input field ---------- */
+const InputField = ({
+  icon: Icon,
+  name,
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  required,
+}) => (
   <div>
-    <label htmlFor={name} className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">
+    <label
+      htmlFor={name}
+      className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5"
+    >
       {label} {required && <span className="text-rose-500">*</span>}
     </label>
     <div className="relative group">
       <Icon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-slate-500 transition-colors duration-200 ease-in group-focus-within:text-indigo-600 dark:group-focus-within:text-indigo-400" />
-      <input id={name} name={name} type={type} value={value} onChange={onChange} placeholder={placeholder} required={required}
-        className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 py-2.5 pl-9 pr-3 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 transition-all duration-200 ease-in hover:border-indigo-300 dark:hover:border-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-500/40" />
+      <input
+        id={name}
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 py-2.5 pl-9 pr-3 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 transition-all duration-200 ease-in hover:border-indigo-300 dark:hover:border-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-500/40"
+      />
     </div>
   </div>
 );

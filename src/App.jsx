@@ -23,8 +23,15 @@ import MensProducts from './Components/CATEGORIES/MensProducts';
 import WomensProducts from './Components/CATEGORIES/WomensProducts';
 import KidsProducts from './Components/CATEGORIES/KidsProducts';
 import GirlsProducts from './Components/CATEGORIES/GirlsProducts';
+import TrendingProducts from './Components/CATEGORIES/TrendingProducts';
+import Featured from './Components/CATEGORIES/Featured';
 
-/* ---------- Form/User Components ---------- */
+/* ---------- Product Detail Page ----------
+   ⚠️ Filename on disk is "ProductDtails.jsx" (typo) — import matches disk.
+   If you rename the file to "ProductDetails.jsx", update this line too. */
+import ProductDetails from './Components/CATEGORIES/ProductDtails';
+
+/* ---------- Form / User Components ---------- */
 import Profile from './Components/Forms/Profile';
 import EditProfile from './Components/Forms/EditProfile';
 import Settings from './Components/Forms/Settings';
@@ -33,16 +40,24 @@ import Orders from './Components/Forms/Orders';
 import Login from './Components/Forms/Login';
 import Signup from './Components/Forms/Signup';
 
-/* ---------- Context & Utils ---------- */
+/* ---------- Context & Footer Links ---------- */
 import { useUser } from './context/UserContext';
 import FAQ from './FooterLinks/FAQ';
-import Featured from './Components/CATEGORIES/Featured';
+import OrderNow from './Components/CATEGORIES/OrderNow';
 
 /* ============================== Animation Variants ============================== */
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-  exit: { opacity: 0, y: -20, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+  },
 };
 
 /* ============================== Helper Components ============================== */
@@ -75,7 +90,9 @@ const Placeholder = ({ title, description }) => (
   <PageWrapper>
     <section className="min-h-[70vh] flex items-center justify-center bg-white px-4 py-16">
       <div className="max-w-2xl text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{title}</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+          {title}
+        </h1>
         <p className="text-gray-600 text-sm sm:text-base mb-6">
           {description || 'This page is under construction. Check back soon!'}
         </p>
@@ -108,7 +125,9 @@ const NotFound = () => (
           <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
             Look like you're lost
           </h3>
-          <p className="text-gray-600 mb-6">The page you are looking for is not available!</p>
+          <p className="text-gray-600 mb-6">
+            The page you are looking for is not available!
+          </p>
           <Link
             to="/"
             className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
@@ -130,15 +149,15 @@ const ScrollToTop = () => {
   return null;
 };
 
+/* ---------- Main Layout (Navbar + Footer persist) ---------- */
 const MainLayout = () => {
   const location = useLocation();
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-1 top">
         <AnimatePresence mode="wait">
-          {/* Keying on pathname ensures exit animations run before new page enters */}
           <Outlet key={location.pathname} />
         </AnimatePresence>
       </main>
@@ -185,18 +204,25 @@ const App = () => {
       <ScrollToTop />
       <Routes>
         {/* ---------- AUTH ROUTES (No Navbar/Footer) ---------- */}
-        <Route 
-          path="/login" 
-          element={<RedirectIfLoggedIn><Login /></RedirectIfLoggedIn>} 
+        <Route
+          path="/login"
+          element={
+            <RedirectIfLoggedIn>
+              <Login />
+            </RedirectIfLoggedIn>
+          }
         />
-        <Route 
-          path="/signup" 
-          element={<RedirectIfLoggedIn><Signup /></RedirectIfLoggedIn>} 
+        <Route
+          path="/signup"
+          element={
+            <RedirectIfLoggedIn>
+              <Signup />
+            </RedirectIfLoggedIn>
+          }
         />
 
         {/* ---------- MAIN LAYOUT (Navbar & Footer Persist) ---------- */}
-        <Route element={<MainLayout className="mt-30" />}>
-          
+        <Route element={<MainLayout />}>
           {/* Core Pages */}
           <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
           <Route path="/featured" element={<PageWrapper><Featured /></PageWrapper>} />
@@ -205,32 +231,66 @@ const App = () => {
           <Route path="/resources" element={<PageWrapper><Resource /></PageWrapper>} />
           <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
 
-          {/* Products (Nested Layout) */}
+          {/* Products — category listing (nested layout with AllproductNav) */}
           <Route path="/products" element={<AllproductNav />}>
             <Route index element={<Products />} />
             <Route path="mens" element={<MensProducts />} />
             <Route path="womens" element={<WomensProducts />} />
             <Route path="kids" element={<KidsProducts />} />
             <Route path="girls" element={<GirlsProducts />} />
+            <Route path="trending" element={<TrendingProducts />} />
             <Route path="arrivals" element={<Arrivals />} />
             <Route path="sale" element={<Sale />} />
           </Route>
+            <Route path="/order" element={<OrderNow />} />
+
+          {/* ✅ Product DETAIL page — single product view
+              Matches: /products/mens/3, /products/womens/12, etc.
+              Must be a SIBLING of the /products block above (not nested). */}
+          <Route
+            path="/products/:category/:productId"
+            element={<PageWrapper><ProductDetails /></PageWrapper>}
+          />
+
+          {/* Legacy redirect — keeps old bookmarks working */}
+          <Route path="/ProductsDetails" element={<Navigate to="/products" replace />} />
 
           {/* Protected Routes */}
-          <Route path="/profile" element={<RequireLogin><PageWrapper><Profile /></PageWrapper></RequireLogin>} />
-          <Route path="/edit-profile" element={<RequireLogin><PageWrapper><EditProfile /></PageWrapper></RequireLogin>} />
-          <Route path="/settings" element={<RequireLogin><PageWrapper><Settings /></PageWrapper></RequireLogin>} />
-          <Route path="/addresses" element={<RequireLogin><PageWrapper><Address /></PageWrapper></RequireLogin>} />
-          <Route path="/orders" element={<RequireLogin><PageWrapper><Orders /></PageWrapper></RequireLogin>} />
-          <Route path="/wishlist" element={<RequireLogin><PageWrapper><WishList /></PageWrapper></RequireLogin>} />
-          <Route path="/cart" element={<RequireLogin><PageWrapper><Cart /></PageWrapper></RequireLogin>} />
+          <Route
+            path="/profile"
+            element={<RequireLogin><PageWrapper><Profile /></PageWrapper></RequireLogin>}
+          />
+          <Route
+            path="/edit-profile"
+            element={<RequireLogin><PageWrapper><EditProfile /></PageWrapper></RequireLogin>}
+          />
+          <Route
+            path="/settings"
+            element={<RequireLogin><PageWrapper><Settings /></PageWrapper></RequireLogin>}
+          />
+          <Route
+            path="/addresses"
+            element={<RequireLogin><PageWrapper><Address /></PageWrapper></RequireLogin>}
+          />
+          <Route
+            path="/orders"
+            element={<RequireLogin><PageWrapper><Orders /></PageWrapper></RequireLogin>}
+          />
+          <Route
+            path="/wishlist"
+            element={<RequireLogin><PageWrapper><WishList /></PageWrapper></RequireLogin>}
+          />
+          <Route
+            path="/cart"
+            element={<RequireLogin><PageWrapper><Cart /></PageWrapper></RequireLogin>}
+          />
 
           {/* Placeholder Routes */}
           {placeholderRoutes.map(({ path, title, description }) => (
-            <Route 
-              key={path} 
-              path={path} 
-              element={<Placeholder title={title} description={description} />} 
+            <Route
+              key={path}
+              path={path}
+              element={<Placeholder title={title} description={description} />}
             />
           ))}
 
