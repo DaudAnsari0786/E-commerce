@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -53,6 +53,9 @@ const Address = () => {
   const isSelectMode = Boolean(nextRoute);
 
   const STORAGE_KEY = user ? `stylecraft:addresses:${user.email}` : null;
+  const PRIMARY_KEY = user?.email
+    ? `stylecraft:primaryAddress:${user.email}`
+    : null;
 
   /* ---------- State ---------- */
   const [addresses, setAddresses] = useState(() => {
@@ -64,7 +67,6 @@ const Address = () => {
     } catch {
       /* ignore */
     }
-    // Seed first address for a fresh user
     return user
       ? [
           {
@@ -101,6 +103,17 @@ const Address = () => {
     }
   });
 
+  /* ✅ Read primary address id (memoized) */
+  const primaryId = useMemo(() => {
+    if (!PRIMARY_KEY) return null;
+    try {
+      const raw = localStorage.getItem(PRIMARY_KEY);
+      return raw ? JSON.parse(raw)?.id ?? null : null;
+    } catch {
+      return null;
+    }
+  }, [PRIMARY_KEY, feedback]); // re-evaluate when feedback changes (after select)
+
   /* ---------- Auth guard ---------- */
   useEffect(() => {
     if (!user) navigate('/login');
@@ -115,6 +128,26 @@ const Address = () => {
       /* ignore */
     }
   }, [addresses, STORAGE_KEY]);
+
+  /* ✅ Auto-load primary address as shipping when entering select mode */
+  useEffect(() => {
+    if (!isSelectMode || !PRIMARY_KEY) return;
+
+    try {
+      const raw = localStorage.getItem(PRIMARY_KEY);
+      if (!raw) return;
+      const primary = JSON.parse(raw);
+
+      const existingShipping = localStorage.getItem('stylecraft:shipping');
+      if (existingShipping) return; // respect existing selection
+
+      localStorage.setItem('stylecraft:shipping', JSON.stringify(primary));
+      setShippingId(primary.id);
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSelectMode, PRIMARY_KEY]);
 
   if (!user) return null;
 
@@ -155,7 +188,6 @@ const Address = () => {
         } else {
           next = [...prev, { ...form, id: Date.now() }];
         }
-        // Enforce single default
         if (form.isDefault) {
           const targetId = form.id || next[next.length - 1].id;
           next = next.map((a) =>
@@ -182,21 +214,47 @@ const Address = () => {
 
   const confirmDelete = () => {
     setAddresses((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+    // Clear primary if it was deleted
+    if (PRIMARY_KEY) {
+      try {
+        const primary = JSON.parse(localStorage.getItem(PRIMARY_KEY) || 'null');
+        if (primary?.id === deleteTarget.id) {
+          localStorage.removeItem(PRIMARY_KEY);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     showFeedback('Address deleted');
     setDeleteTarget(null);
   };
 
   /* ✅ Called when user picks a shipping address in select mode */
   const selectAddress = (addr) => {
+    /* 1️⃣ Save as shipping for THIS checkout */
     try {
       localStorage.setItem('stylecraft:shipping', JSON.stringify(addr));
     } catch {
-      /* ignore quota errors */
+      /* ignore */
     }
+
+    /* 2️⃣ Persist as the user's primary address (reusable template) */
+    if (PRIMARY_KEY) {
+      try {
+        localStorage.setItem(PRIMARY_KEY, JSON.stringify(addr));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    /* 3️⃣ Promote it to "default" within the saved list */
+    setAddresses((prev) =>
+      prev.map((a) => ({ ...a, isDefault: a.id === addr.id }))
+    );
+
     setShippingId(addr.id);
     showFeedback(`Shipping to ${addr.type} — ${addr.city}`);
 
-    // If we came from checkout, bounce straight back there
     if (nextRoute === 'checkout') {
       setTimeout(() => navigate('/checkout'), 400);
     }
@@ -289,7 +347,6 @@ const Address = () => {
 
       {/* ---------- Main ---------- */}
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 -mt-4 sm:-mt-6">
-        {/* Feedback banner */}
         <AnimatePresence>
           {feedback && (
             <motion.div
@@ -316,7 +373,6 @@ const Address = () => {
             variants={fadeInUp}
             className="lg:col-span-4 space-y-5"
           >
-            {/* Stats card */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-5">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/30">
@@ -342,7 +398,6 @@ const Address = () => {
               </div>
             </div>
 
-            {/* Quick links */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
               <div className="px-5 pt-5 pb-3">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">
@@ -378,7 +433,6 @@ const Address = () => {
               </div>
             </div>
 
-            {/* Sign out (mobile) */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -398,7 +452,6 @@ const Address = () => {
             variants={stagger}
             className="lg:col-span-8 space-y-6"
           >
-            {/* Add / Edit form */}
             <AnimatePresence>
               {editing && (
                 <motion.section
@@ -439,7 +492,6 @@ const Address = () => {
                   </div>
 
                   <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-5">
-                    {/* Type selector */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
                         Address type
@@ -468,7 +520,6 @@ const Address = () => {
                       </div>
                     </div>
 
-                    {/* Name + phone */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <InputField
                         icon={FaUser}
@@ -500,7 +551,6 @@ const Address = () => {
                       required
                     />
 
-                    {/* City / state / pincode */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <InputField
                         icon={FaCity}
@@ -531,7 +581,6 @@ const Address = () => {
                       />
                     </div>
 
-                    {/* Country + default */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <InputField
                         icon={FaGlobe}
@@ -556,7 +605,6 @@ const Address = () => {
                       </label>
                     </div>
 
-                    {/* Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
                       <motion.button
                         type="submit"
@@ -595,7 +643,6 @@ const Address = () => {
               )}
             </AnimatePresence>
 
-            {/* Address list */}
             <motion.section variants={fadeInUp}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">
@@ -647,6 +694,7 @@ const Address = () => {
                     const TypeIcon = meta.icon;
                     const isSelected =
                       isSelectMode && shippingId === addr.id;
+                    const isPrimaryTemplate = primaryId === addr.id;
 
                     return (
                       <motion.div
@@ -680,7 +728,6 @@ const Address = () => {
                             : 'border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-indigo-200 dark:hover:border-slate-600'
                         } ${isSelectMode ? 'cursor-pointer' : ''}`}
                       >
-                        {/* Selected pill */}
                         {isSelected && (
                           <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 shadow-sm">
                             <FaCheckCircle className="w-2.5 h-2.5" />
@@ -688,7 +735,6 @@ const Address = () => {
                           </span>
                         )}
 
-                        {/* Default pill */}
                         {!isSelected && addr.isDefault && (
                           <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 shadow-sm">
                             <FaStar className="w-2.5 h-2.5" />
@@ -696,7 +742,6 @@ const Address = () => {
                           </span>
                         )}
 
-                        {/* Header */}
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <div
@@ -717,7 +762,14 @@ const Address = () => {
                           </div>
                         </div>
 
-                        {/* Address lines */}
+                        {/* ✅ Saved template hint */}
+                        {isPrimaryTemplate && !isSelected && (
+                          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
+                            <FaCheckCircle className="w-2.5 h-2.5" />
+                            Saved template
+                          </div>
+                        )}
+
                         <div className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed space-y-0.5">
                           <p className="truncate">{addr.line1 || '—'}</p>
                           <p>
@@ -728,13 +780,11 @@ const Address = () => {
                           </p>
                         </div>
 
-                        {/* Phone */}
                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                           <FaPhoneAlt className="w-3 h-3 text-gray-400 dark:text-slate-500" />
                           <span>{addr.phone || '—'}</span>
                         </div>
 
-                        {/* Actions */}
                         <div className="mt-4 flex items-center gap-2 flex-wrap">
                           {!addr.isDefault && !isSelectMode && (
                             <button
@@ -762,7 +812,6 @@ const Address = () => {
                             Edit
                           </button>
 
-                          {/* ✅ Selection button (only in select mode) */}
                           {isSelectMode && (
                             <button
                               type="button"
@@ -777,7 +826,6 @@ const Address = () => {
                             </button>
                           )}
 
-                          {/* Delete (only outside select mode) */}
                           {!isSelectMode && (
                             <button
                               type="button"

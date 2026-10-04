@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,6 +18,8 @@ import {
   FaSpinner,
   FaLock,
   FaEdit,
+  FaChevronDown,
+  FaCheck,
 } from 'react-icons/fa';
 
 import { useCartAutoReload } from '../../hooks/useCartAutoReload';
@@ -39,7 +41,6 @@ const stagger = {
 const inr = (n) =>
   `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
-/** Reads the shipping address saved by Address.jsx */
 const readSavedShipping = () => {
   try {
     return JSON.parse(localStorage.getItem('stylecraft:shipping') || 'null');
@@ -48,11 +49,176 @@ const readSavedShipping = () => {
   }
 };
 
-const PAYMENT_METHODS = [
-  { id: 'cod',  label: 'Cash on Delivery',      icon: FaMoneyBillWave, hint: 'Pay when it arrives' },
-  { id: 'card', label: 'Credit / Debit Card',   icon: FaCreditCard,     hint: 'Visa, Mastercard, RuPay' },
-  { id: 'upi',  label: 'UPI',                   icon: FaMobileAlt,      hint: 'GPay, PhonePe, Paytm' },
+/* ✅ Country list — South Asia first, then Middle East, SE Asia, ROW */
+const COUNTRY_CODES = [
+  /* ---------- South Asia (near India) ---------- */
+  { code: '+91',  iso: 'IN', flag: '🇮🇳', label: 'India',          placeholder: '98765 43210' },
+  { code: '+92',  iso: 'PK', flag: '🇵🇰', label: 'Pakistan',       placeholder: '300 1234567' },
+  { code: '+880', iso: 'BD', flag: '🇧🇩', label: 'Bangladesh',     placeholder: '1712 345678' },
+  { code: '+94',  iso: 'LK', flag: '🇱🇰', label: 'Sri Lanka',      placeholder: '71 234 5678' },
+  { code: '+977', iso: 'NP', flag: '🇳🇵', label: 'Nepal',          placeholder: '9801 234567' },
+  { code: '+975', iso: 'BT', flag: '🇧🇹', label: 'Bhutan',         placeholder: '17 123456' },
+  { code: '+960', iso: 'MV', flag: '🇲🇻', label: 'Maldives',       placeholder: '771 2345' },
+  { code: '+93',  iso: 'AF', flag: '🇦🇫', label: 'Afghanistan',    placeholder: '70 123 4567' },
+  { code: '+95',  iso: 'MM', flag: '🇲🇲', label: 'Myanmar',        placeholder: '9 123 456 789' },
+
+  /* ---------- Middle East ---------- */
+  { code: '+971', iso: 'AE', flag: '🇦🇪', label: 'UAE',            placeholder: '50 123 4567' },
+  { code: '+966', iso: 'SA', flag: '🇸🇦', label: 'Saudi Arabia',   placeholder: '50 123 4567' },
+  { code: '+974', iso: 'QA', flag: '🇶🇦', label: 'Qatar',          placeholder: '3312 3456' },
+  { code: '+965', iso: 'KW', flag: '🇰🇼', label: 'Kuwait',         placeholder: '500 12345' },
+  { code: '+973', iso: 'BH', flag: '🇧🇭', label: 'Bahrain',        placeholder: '3600 1234' },
+  { code: '+968', iso: 'OM', flag: '🇴🇲', label: 'Oman',           placeholder: '9212 3456' },
+
+  /* ---------- Southeast Asia ---------- */
+  { code: '+65',  iso: 'SG', flag: '🇸🇬', label: 'Singapore',      placeholder: '8123 4567' },
+  { code: '+60',  iso: 'MY', flag: '🇲🇾', label: 'Malaysia',       placeholder: '12 345 6789' },
+  { code: '+66',  iso: 'TH', flag: '🇹🇭', label: 'Thailand',       placeholder: '81 234 5678' },
+  { code: '+62',  iso: 'ID', flag: '🇮🇩', label: 'Indonesia',      placeholder: '812 3456 7890' },
+
+  /* ---------- Popular destinations ---------- */
+  { code: '+44',  iso: 'GB', flag: '🇬🇧', label: 'United Kingdom', placeholder: '7400 123456' },
+  { code: '+1',   iso: 'US', flag: '🇺🇸', label: 'United States',  placeholder: '202 555 0143' },
+  { code: '+1',   iso: 'CA', flag: '🇨🇦', label: 'Canada',         placeholder: '416 555 0123' },
+  { code: '+61',  iso: 'AU', flag: '🇦🇺', label: 'Australia',      placeholder: '412 345 678' },
+  { code: '+46',  iso: 'SE', flag: '🇸🇪', label: 'Sweden',         placeholder: '70 123 45 67' },
 ];
+
+/* ✅ Auto-detect default country ISO by browser locale */
+const detectDefaultIso = () => {
+  try {
+    const locale = navigator.language || 'en-IN';
+    const region = locale.split('-')[1]?.toUpperCase();
+    const found = COUNTRY_CODES.find((c) => c.iso === region);
+    return found ? found.iso : 'IN';
+  } catch {
+    return 'IN';
+  }
+};
+
+const PAYMENT_METHODS = [
+  { id: 'cod',  label: 'Cash on Delivery',    icon: FaMoneyBillWave, hint: 'Pay when it arrives' },
+  { id: 'card', label: 'Credit / Debit Card', icon: FaCreditCard,     hint: 'Visa, Mastercard, RuPay' },
+  { id: 'upi',  label: 'UPI',                 icon: FaMobileAlt,      hint: 'GPay, PhonePe, Paytm' },
+];
+
+/* ================================================================
+   CountryCodeSelect — scrollable dropdown with sticky header
+   ================================================================ */
+const CountryCodeSelect = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const listRef = useRef(null);
+
+  const current =
+    COUNTRY_CODES.find((c) => c.iso === value) || COUNTRY_CODES[0];
+
+  /* ---------- Close on outside click / Esc ---------- */
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const onEsc = (e) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  /* ---------- Auto-scroll to selected on open ---------- */
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    const el = listRef.current.querySelector('[data-active="true"]');
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [open]);
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 h-[42px] px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 hover:bg-gray-100 text-sm font-medium text-gray-800 transition-colors cursor-pointer"
+      >
+        <span className="text-base leading-none">{current.flag}</span>
+        <span className="tabular-nums">{current.code}</span>
+        <FaChevronDown
+          className={`w-2.5 h-2.5 text-gray-500 transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute z-30 top-[calc(100%+4px)] left-0 w-[280px] rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden"
+          >
+            {/* Sticky header */}
+            <div className="sticky top-0 z-10 px-3 py-2 bg-gray-50/95 backdrop-blur border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              Choose country · {COUNTRY_CODES.length}
+            </div>
+
+            {/* Scrollable list */}
+            <ul
+              ref={listRef}
+              role="listbox"
+              className="max-h-[280px] overflow-y-auto overscroll-contain py-1 country-scroll"
+            >
+              {COUNTRY_CODES.map((c) => {
+                const active = c.iso === value;
+                return (
+                  <li key={c.iso}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      data-active={active ? 'true' : 'false'}
+                      onClick={() => {
+                        onChange(c.iso);
+                        setOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-indigo-50 text-indigo-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-lg leading-none shrink-0">
+                        {c.flag}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium truncate">
+                          {c.label}
+                        </span>
+                        <span className="block text-[11px] text-gray-500 tabular-nums">
+                          {c.code}
+                        </span>
+                      </span>
+                      {active && (
+                        <FaCheck className="w-3 h-3 text-indigo-600 shrink-0" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 /* ================================================================
    OrderNow / Checkout
@@ -63,7 +229,7 @@ const OrderNow = () => {
   const { items: cartItems } = useCartAutoReload();
   const { user } = useUser();
 
-  /* ---------- Resolve order items: Buy Now OR full cart ---------- */
+  /* ---------- Resolve order items ---------- */
   const orderItems = useMemo(() => {
     const buyNow = location.state?.buyNowProduct;
     if (buyNow) {
@@ -74,7 +240,7 @@ const OrderNow = () => {
 
   const isBuyNow = Boolean(location.state?.buyNowProduct);
 
-  /* ---------- Prefill form from saved shipping + user ---------- */
+  /* ---------- Prefill form ---------- */
   const [form, setForm] = useState(() => {
     const saved = readSavedShipping();
     return {
@@ -90,7 +256,10 @@ const OrderNow = () => {
     };
   });
 
-  /* ✅ Live sync: re-read shipping address whenever we return from /addresses */
+  /* ✅ Country ISO state (fixes US/Canada +1 collision) */
+  const [countryIso, setCountryIso] = useState(detectDefaultIso);
+
+  /* ---------- Live sync when coming back from /addresses ---------- */
   useEffect(() => {
     const saved = readSavedShipping();
     if (!saved) return;
@@ -104,7 +273,7 @@ const OrderNow = () => {
     }));
   }, [location.key]);
 
-  /* ✅ Merge user info only for fields still empty */
+  /* ---------- Merge user info for empty fields ---------- */
   useEffect(() => {
     if (!user) return;
     setForm((f) => ({
@@ -115,7 +284,7 @@ const OrderNow = () => {
     }));
   }, [user]);
 
-  /* ✅ If NO shipping address saved → redirect to /addresses?next=checkout */
+  /* ---------- Auto-redirect if no shipping saved ---------- */
   useEffect(() => {
     if (!user) return;
     if (orderItems.length === 0) return;
@@ -149,13 +318,21 @@ const OrderNow = () => {
   const tax = Math.round(subtotal * 0.05);
   const total = subtotal + shipping + tax;
 
+  /* ---------- Current country lookup ---------- */
+  const currentCountry =
+    COUNTRY_CODES.find((c) => c.iso === countryIso) || COUNTRY_CODES[0];
+
   /* ---------- Validation ---------- */
   const validate = useCallback(() => {
     const e = {};
     if (!form.name.trim()) e.name = 'Name is required';
     if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = 'Valid email required';
-    if (!/^\d{10}$/.test(form.phone.replace(/\D/g, '')))
-      e.phone = '10-digit phone required';
+
+    /* Strip non-digits, allow 7–15 digits (E.164 max) */
+    const digits = form.phone.replace(/\D/g, '');
+    if (digits.length < 7 || digits.length > 15)
+      e.phone = 'Valid phone number required';
+
     if (!form.address.trim()) e.address = 'Address is required';
     if (!form.city.trim()) e.city = 'City is required';
     if (!/^\d{6}$/.test(form.pincode)) e.pincode = '6-digit PIN required';
@@ -175,7 +352,7 @@ const OrderNow = () => {
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
-  /* ✅ Place the order — saves to store so Orders.jsx auto-reloads */
+  /* ---------- Place order ---------- */
   const handlePlaceOrder = async (ev) => {
     ev.preventDefault();
     if (!orderItems.length) return;
@@ -189,6 +366,9 @@ const OrderNow = () => {
     setPlacing(true);
     try {
       await new Promise((r) => setTimeout(r, 1200));
+
+      /* ✅ Compose full phone using the resolved country */
+      const fullPhone = `${currentCountry.code} ${form.phone.replace(/\D/g, '')}`;
 
       const saved = addOrder({
         items: orderItems.map((i) => ({
@@ -209,15 +389,13 @@ const OrderNow = () => {
             : payment === 'upi'
             ? `UPI • ${form.upi}`
             : `Card • ****${form.card.replace(/\s/g, '').slice(-4)}`,
+        phone: fullPhone,
         userEmail: user?.email || form.email || 'guest',
         userName: user?.name || form.name,
         notes: form.notes,
       });
 
       if (!isBuyNow) clearCart();
-
-      // ✅ Optional: force re-selection next time.
-      //    Remove this line if you want the address to stay sticky.
       localStorage.removeItem('stylecraft:shipping');
 
       setPlaced({
@@ -308,6 +486,10 @@ const OrderNow = () => {
               label="Shipping to"
               value={`${form.address}, ${form.city} - ${form.pincode}`}
             />
+            <Row
+              label="Contact"
+              value={`${currentCountry.code} ${form.phone}`}
+            />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -374,7 +556,6 @@ const OrderNow = () => {
               variants={fadeInUp}
               className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6"
             >
-              {/* ✅ Header with Change button */}
               <div className="flex items-center justify-between gap-3 mb-5">
                 <div className="flex items-center gap-2">
                   <FaMapMarkerAlt className="w-4 h-4 text-indigo-600" />
@@ -413,16 +594,20 @@ const OrderNow = () => {
                   placeholder="you@example.com"
                   autoComplete="email"
                 />
-                <Field
-                  label="Phone"
-                  icon={FaPhone}
-                  type="tel"
-                  value={form.phone}
-                  onChange={handleChange('phone')}
-                  error={errors.phone}
-                  placeholder="9876543210"
-                  autoComplete="tel"
-                />
+
+                {/* ✅ Phone with country code dropdown */}
+                <div className="sm:col-span-2">
+                  <PhoneField
+                    label="Phone"
+                    value={form.phone}
+                    onChange={handleChange('phone')}
+                    error={errors.phone}
+                    placeholder={currentCountry.placeholder}
+                    countryIso={countryIso}
+                    onCountryChange={setCountryIso}
+                  />
+                </div>
+
                 <Field
                   label="PIN code"
                   icon={FaMapMarkerAlt}
@@ -706,6 +891,54 @@ const Field = ({ label, icon: Icon, error, ...rest }) => (
         }`}
       />
     </span>
+    <AnimatePresence>
+      {error && (
+        <motion.span
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          className="block mt-1 text-[11px] font-medium text-rose-500"
+        >
+          {error}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  </label>
+);
+
+/* ---------- Phone field with country code dropdown ---------- */
+const PhoneField = ({
+  label,
+  value,
+  onChange,
+  error,
+  placeholder,
+  countryIso,
+  onCountryChange,
+}) => (
+  <label data-error={error ? 'true' : 'false'} className="block">
+    <span className="block text-xs font-semibold text-gray-700 mb-1.5">
+      {label}
+    </span>
+    <div className="flex">
+      <CountryCodeSelect value={countryIso} onChange={onCountryChange} />
+      <span className="relative flex-1">
+        <FaPhone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+        <input
+          type="tel"
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          autoComplete="tel-national"
+          inputMode="numeric"
+          className={`w-full rounded-r-lg border bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 ${
+            error
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200'
+              : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200'
+          }`}
+        />
+      </span>
+    </div>
     <AnimatePresence>
       {error && (
         <motion.span
