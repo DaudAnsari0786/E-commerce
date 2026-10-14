@@ -145,7 +145,7 @@ const Home = () => {
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: '0 20px 40px -10px rgba(79,70,229,0.5)' }}
                     whileTap={{ scale: 0.95 }}
-                    className="group w-full px-6 sm:px-7 py-3 sm:py-3.5 bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white rounded-full font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+                    className="group w-full cursor-pointer px-6 sm:px-7 py-3 sm:py-3.5 bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white rounded-full font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
                   >
                     Shop Now
                     <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -155,7 +155,7 @@ const Home = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="group w-full sm:w-auto px-6 sm:px-7 py-3 sm:py-3.5 border-2 border-gray-900 text-gray-900 rounded-full font-semibold hover:bg-gray-900 hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                  className="group w-full cursor-pointer sm:w-auto px-6 sm:px-7 py-3 sm:py-3.5 border-2 border-gray-900 text-gray-900 rounded-full font-semibold hover:bg-gray-900 hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <span className="w-6 h-6 rounded-full bg-gray-900 group-hover:bg-white flex items-center justify-center transition-colors">
                     <span className="text-white group-hover:text-gray-900 text-[10px]">▶</span>
